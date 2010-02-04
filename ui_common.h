@@ -27,6 +27,10 @@
 #define _(...) __VA_ARGS__
 #endif
 
+#ifndef EET_CONF_FILE
+#define EET_CONF_FILE "." NAME ".eet"
+#endif
+
 #ifdef TEST_WIDGET_MODE
 #define TEST_WIDGET(name, code, post)					\
   static void test_win_del(void *data, Evas_Object *obj,		\

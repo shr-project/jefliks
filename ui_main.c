@@ -20,12 +20,21 @@
  * Boston, MA 02110-1301, USA.
  */
 
+#include<iksemel.h>
 #include<Elementary.h>
 
 #include"ui_common.h"
 #include"ui_main.h"
+
 #include"ui_config.h"
 #include"ui_about.h"
+#include"ui_roster.h"
+
+
+#ifndef default_status
+#define default_status JS_OFFLINE
+#endif
+
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
@@ -76,9 +85,54 @@ _about_hook(void *data, Evas_Object *obj, void *event_info)
   //evas_object_event_callback_add(about, EVAS_CALLBACK_FREE, _dialog_del, wd);
 }
 
+typedef enum _Jabber_Status Jabber_Status;
+enum _Jabber_Status {
+  JS_ONLINE = 0x1,
+  JS_OFFLINE = 0x2,
+  JS_AWAY = 0x3,
+  JS_EXTENDED_AWAY = 0x4,
+  JS_DONT_DISTURB = 0x5
+};
+
+static void
+_status_load(Jabber_Status *status, char **message){
+  Eet_File *ef;
+  int size;
+  char *val;
+  
+  ef = eet_open(EET_CONF_FILE, EET_FILE_MODE_READ);
+  *status=default_status;
+  *message=NULL;
+  if(ef){
+    val=eet_read(ef, "last_status", &size);
+    if(val){
+      *status=*val;
+      free(val);
+    }
+    eet_close(ef);
+  }
+}
+
+static void
+_status_save(Jabber_Status status, const char *message){
+  Eet_File *ef;
+  int size;
+  char st;
+  char *val;
+  
+  ef = eet_open(EET_CONF_FILE, EET_FILE_MODE_WRITE);
+  if(ef){
+    st=status;
+    val=&st;
+    eet_write(ef, "last_status", val, 1, 0);
+    
+    eet_close(ef);
+  }
+}
+
 Evas_Object *elm_jabber_main(Evas_Object *parent){
   Widget_Data *wd;
-  Evas_Object *box, *buttons, *status, *actions, *rl;
+  Evas_Object *box, *buttons, *status, *actions, *roster;
   
   wd = malloc(sizeof(Widget_Data));
   wd->parent=parent;
@@ -92,15 +146,11 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_show(box);
   
   /* Roster */
-  
-  rl = elm_anchorview_add(parent);
-  evas_object_size_hint_weight_set(rl, 1.0, 1.0);
-  evas_object_size_hint_align_set(rl, -1.0, -1.0);
-  elm_anchorview_text_set(rl, "It's startup <a href=1>kayo@neko.im</a>");
-  //elm_win_resize_object_add(wn, rl);
-  elm_box_pack_end(box, rl);
-  evas_object_show(rl);
-  
+  roster = elm_jabber_roster_add(parent);
+  evas_object_size_hint_weight_set(roster, 1.0, 1.0);
+  evas_object_size_hint_align_set(roster, -1.0, -1.0);
+  elm_box_pack_end(box, roster);
+  evas_object_show(roster);
   
   /* Buttons */
   buttons = elm_box_add(parent);
