@@ -13,6 +13,8 @@ ifdef debug
 CFLAGS += -g
 endif
 
+CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG
+
 all: $(name).elf #$(name).edj
 
 $(name).edj: theme.edc

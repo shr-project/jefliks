@@ -24,6 +24,6 @@
 #define __CONFIG_H__
 
 Evas_Object *elm_jabber_config_add(Evas_Object *parent);
-void elm_jabber_config_opt(Evas_Object *obj, const char **jidres, const char **passwd, const char **server, char *usetls);
+int elm_jabber_config_opt(char **jid, char **res, char **passwd, char **server, int *port, char *usetls);
 
 #endif

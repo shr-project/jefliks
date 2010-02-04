@@ -1,16 +1,25 @@
 #include<Elementary.h>
+#include"ui_common.h"
 #include"ui_config.h"
-
-#ifndef _
-#define _(...) __VA_ARGS__
-#endif
 
 #ifndef EET_CONF_FILE
 #define EET_CONF_FILE "." NAME ".eet"
 #endif
 
 #ifndef default_jidres
-#define default_jidres "username@server.domain/jelmiks"
+#define default_jidres "username@server.domain/" NAME
+#endif
+
+#ifndef default_res
+#define default_res NAME
+#endif
+
+#ifndef default_port
+#define default_port 5222
+#endif
+
+#ifndef default_tlsport
+#define default_tlsport 5223
 #endif
 
 #ifndef default_passwd
@@ -35,7 +44,7 @@
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
-  Evas_Object *jidres, *passwd, *server, *server_enable, *usetls, *save, *conn;
+  Evas_Object *jidres, *passwd, *server, *server_enable, *usetls, *save;
 };
 
 static void
@@ -54,6 +63,13 @@ _server_enable_hook(void *data, Evas_Object *obj, void *event_info)
   
   st=elm_check_state_get(wd->server_enable);
   elm_object_disabled_set(wd->server, !st);
+}
+
+static void
+_close_hook(void *data, Evas_Object *obj, void *event_info)
+{
+  Evas_Object *frame=data;
+  evas_object_del(frame);
 }
 
 static void
@@ -107,7 +123,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_event_callback_add(frame, EVAS_CALLBACK_FREE, _del_hook, wd);
   
   box = elm_box_add(parent);
-  evas_object_size_hint_weight_set(box, 1.0, -1.0);
+  evas_object_size_hint_weight_set(box, 1.0, 0.0);
   evas_object_show(box);
   
 #if 1
@@ -115,7 +131,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     Evas_Object *field;							\
     field = elm_frame_add(parent);					\
     elm_frame_label_set(field, title);					\
-    evas_object_size_hint_weight_set(field, 1.0, -0.5);			\
+    evas_object_size_hint_weight_set(field, 1.0, 0.0);			\
     evas_object_size_hint_align_set(field, -1.0, 0.0);			\
     elm_box_pack_end(box, field);					\
     elm_frame_content_set(field, widget);				\
@@ -173,14 +189,15 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   
   wd->server_enable = elm_check_add(parent);
   elm_check_label_set(wd->server_enable, "");
-  evas_object_size_hint_weight_set(wd->server_enable, -1.0, -1.0);
-  //evas_object_size_hint_align_set(wd->server_enable, 0.0, -1.0);
+  evas_object_size_hint_weight_set(wd->server_enable, 0.0, 0.0);
+  evas_object_size_hint_align_set(wd->server_enable, 0.0, 0.0);
   evas_object_show(wd->server_enable);
   
   wd->server = elm_entry_add(parent);
   elm_entry_single_line_set(wd->server, EINA_TRUE);
-  evas_object_size_hint_weight_set(wd->server_enable, 0.0, 1.0);
-  //evas_object_size_hint_align_set(wd->server, 1.0, -1.0);
+  evas_object_size_hint_weight_set(wd->server, 1.0, 1.0);
+  evas_object_size_hint_align_set(wd->server, -1.0, -1.0);
+  //evas_object_size_hint_padding_set(wd->server, 0.0, 0.0, 1.0, 0.0);
   evas_object_show(wd->server);
   evas_object_smart_callback_add(wd->server_enable, "changed", _server_enable_hook, wd);
   WRAP_FIELD2(_("Server"), wd->server_enable, wd->server);
@@ -220,13 +237,15 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_show(wd->save);
   evas_object_smart_callback_add(wd->save, "clicked", _save_hook, wd);
   
-  wd->conn = elm_button_add(parent);
-  //evas_object_size_hint_weight_set(wd->conn, 1.0, 0.0);
-  evas_object_size_hint_align_set(wd->conn, -1.0, 0.0);
-  elm_button_label_set(wd->conn, _("Connect"));
-  elm_box_pack_end(hbox, wd->conn);
-  evas_object_show(wd->conn);
-  //evas_object_smart_callback_add(wd->save, "clicked", _save_hook, NULL);
+  {
+    Evas_Object *close = elm_button_add(parent);
+    //evas_object_size_hint_weight_set(close, 1.0, 0.0);
+    evas_object_size_hint_align_set(close, -1.0, 0.0);
+    elm_button_label_set(close, _("Close"));
+    elm_box_pack_end(hbox, close);
+    evas_object_show(close);
+    evas_object_smart_callback_add(close, "clicked", _close_hook, frame);
+  }
   
   {
     Eet_File *ef;
@@ -259,18 +278,92 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   return frame;
 }
 
-void elm_jabber_config_opt(Evas_Object *obj, const char **jidres, const char **passwd, const char **server, char *usetls){
-  static const char *no_server="";
-  Widget_Data *wd=evas_object_data_get(obj, "wd");
+int elm_jabber_config_opt(char **jid, char **res, char **passwd, char **server, int *port, char *usetls){
+  Eet_File *ef;
+  int size;
+  char se=0;
+  char *val=NULL, *tmp=NULL;
+  ef = eet_open(EET_CONF_FILE, EET_FILE_MODE_READ);
   
-#define GET_VAL(name) *name=elm_entry_entry_get(wd->name);
-  GET_VAL(jidres);
-  GET_VAL(passwd);
-  GET_VAL(server);
-#undef GET_VAL
-  
-  if(!elm_check_state_get(wd->server_enable)){
-    *server=no_server;
+  if(ef){
+    // JID / Resource
+    *jid=NULL; *res=NULL;
+    val=eet_read(ef, "jidres", &size);
+    if(val){
+      tmp=strchr(val, '/');
+      if(tmp){
+	*tmp='\0';
+	*res=strdup(tmp+1);
+      }else{
+	*res=strdup(default_res);
+      }
+      *jid=strdup(val);
+      free(val);
+    }
+    // Password
+    *passwd=NULL;
+    val=eet_read(ef, "passwd", &size);
+    if(val){
+      *passwd=strdup(val);
+      free(val);
+    }
+    // Use TLS
+    *usetls=0;
+    val=eet_read(ef, "usetls", &size);
+    if(val){
+      *usetls=val[0];
+      free(val);
+    }
+    // Server / Port
+    *server=NULL; *port=0;
+    val=eet_read(ef, "server_enable", &size);
+    se=val[0];
+    free(val);
+    if(se){
+      val=eet_read(ef, "passwd", &size);
+      if(val){
+	tmp=strchr(val, ':');
+	if(tmp){
+	  *tmp='\0';
+	  *port=atoi(tmp+1);
+	}
+	if(*port<0||*port>65535)*port=0;
+	if(strlen(val)>0)*server=strdup(val);
+	free(val);
+      }
+    }
+    // Set port automatically
+    if(!*port)*port=*usetls?default_tlsport:default_port;
+    // Try get server from JID
+    if(!*server){
+      val=strdup(*jid);
+      tmp=strchr(val, '@');
+      if(tmp && strlen(tmp+1)>0){
+	*server=strdup(tmp+1);
+      }
+      free(val);
+    }
+    
+    eet_close(ef);
   }
-  *usetls=elm_check_state_get(wd->usetls);
+  
+  if(!*jid || !*res || !*server || !*port) return -1;
+  return 0;
 }
+
+#ifdef TEST_JABBER_CONFIG
+#define TEST_JABBER_POST {						\
+    char *jid, *res, *passwd, *server;					\
+    int port;								\
+    char usetls;							\
+    									\
+    if(!elm_jabber_config_opt(&jid, &res,	&passwd,		\
+			      &server, &port, &usetls)) {		\
+      printf("jid:%s res:%s passwd:%s server:%s port:%d usetls:%d\n",	\
+	     jid,res, passwd?passwd:"", server, port, usetls);		\
+    }else{								\
+      printf("error configuring!\n");					\
+    }									\
+  }
+TEST_WIDGET(jabber_config, , TEST_JABBER_POST)
+#endif
