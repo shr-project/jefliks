@@ -25,6 +25,7 @@
 #include"ui_common.h"
 #include"ui_main.h"
 #include"ui_config.h"
+#include"ui_about.h"
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
@@ -45,7 +46,7 @@ _exit_hook(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_config_del(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_dialog_del(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
   Widget_Data *wd=data;
   evas_object_show(wd->box);
@@ -60,7 +61,19 @@ _config_hook(void *data, Evas_Object *obj, void *event_info)
   elm_win_resize_object_add(wd->parent, settings);
   evas_object_hide(wd->box);
   evas_object_show(settings);
-  evas_object_event_callback_add(settings, EVAS_CALLBACK_FREE, _config_del, wd);
+  evas_object_event_callback_add(settings, EVAS_CALLBACK_FREE, _dialog_del, wd);
+}
+
+static void
+_about_hook(void *data, Evas_Object *obj, void *event_info)
+{
+  Widget_Data *wd=data;  
+  Evas_Object *about = elm_jabber_about_add(wd->parent);
+  evas_object_size_hint_weight_set(about, 1.0, 1.0);
+  elm_win_resize_object_add(wd->parent, about);
+  //evas_object_hide(wd->box);
+  evas_object_show(about);
+  //evas_object_event_callback_add(about, EVAS_CALLBACK_FREE, _dialog_del, wd);
 }
 
 Evas_Object *elm_jabber_main(Evas_Object *parent){
@@ -123,7 +136,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_size_hint_align_set(actions, -1.0, 0.0);
   
   elm_hoversel_item_add(actions, _("Settings"), NULL, 0, _config_hook, wd);
-  elm_hoversel_item_add(actions, _("About"), NULL, 0, NULL, NULL);
+  elm_hoversel_item_add(actions, _("About"), NULL, 0, _about_hook, wd);
   elm_hoversel_item_add(actions, _("Exit"), NULL, 0, _exit_hook, NULL);
   
   elm_box_pack_end(buttons, actions);

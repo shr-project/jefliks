@@ -1,5 +1,6 @@
 name = jelmiks
-sources = main.c jabber.c ui_config.c ui_roster.c ui_main.c
+author = Phoenix Kayo <kayo.k11.4@gmail.com>
+sources = main.c jabber.c ui_config.c ui_about.c ui_roster.c ui_main.c
 dynlibs = evas ecore edje ecore-evas eina-0 elementary  # 
 stclibs = iksemel
 libs = $(dynlibs) $(stclibs)
@@ -7,7 +8,7 @@ libs = $(dynlibs) $(stclibs)
 prefix=$(DESTDIR)
 objects = $(sources:.c=.o)
 debug=1
-CFLAGS += $(shell pkg-config --cflags $(libs)) -DNAME=\"$(name)\"
+CFLAGS += $(shell pkg-config --cflags $(libs)) -DNAME=\"$(name)\" -DAUTHOR='"$(author)"'
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
 ifdef debug
 CFLAGS += -g
