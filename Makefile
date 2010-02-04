@@ -1,11 +1,12 @@
-name = jabelm
-sources = main.c jabber.c
+name = jelmiks
+sources = main.c jabber.c ui_config.c
 dynlibs = evas ecore edje ecore-evas eina-0 elementary  # 
 stclibs = iksemel
 libs = $(dynlibs) $(stclibs)
 
 prefix=$(DESTDIR)
 objects = $(sources:.c=.o)
+debug=1
 CFLAGS += $(shell pkg-config --cflags $(libs)) -DNAME=\"$(name)\"
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
 ifdef debug
