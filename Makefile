@@ -1,5 +1,5 @@
 name = jelmiks
-sources = main.c jabber.c ui_config.c
+sources = main.c jabber.c ui_config.c ui_roster.c ui_main.c
 dynlibs = evas ecore edje ecore-evas eina-0 elementary  # 
 stclibs = iksemel
 libs = $(dynlibs) $(stclibs)
@@ -13,7 +13,7 @@ ifdef debug
 CFLAGS += -g
 endif
 
-CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG
+#CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG
 
 all: $(name).elf #$(name).edj
 
@@ -39,5 +39,5 @@ build-package:
 clean:
 	rm -f *.o *.bin *.elf *.edj *~ *.ipk
 
-s2n:
+s2n: all
 	scp $(name).elf root@kayo-neo:/home/root

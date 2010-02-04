@@ -39,8 +39,8 @@
 #endif
 
 
-#include<stdlib.h>
-#include<string.h>
+//#include<stdlib.h>
+//#include<string.h>
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
@@ -51,7 +51,6 @@ static void
 _del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
   Widget_Data *wd=data;
-  
   free(wd);
 }
 
@@ -113,13 +112,12 @@ _save_hook(void *data, Evas_Object *obj, void *event_info)
 
 Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   Widget_Data *wd;
-  Evas_Object *frame, *fbox, *box, *hbox, *scroll;
+  Evas_Object *frame, *fbox, *box, *buttons, *close, *scroll;
   
   wd = malloc(sizeof(Widget_Data));
   
   frame = elm_frame_add(parent);
   elm_frame_label_set(frame, _("Connection settings"));
-  evas_object_data_set(frame, "wd", wd);
   evas_object_event_callback_add(frame, EVAS_CALLBACK_FREE, _del_hook, wd);
   
   box = elm_box_add(parent);
@@ -222,30 +220,29 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_show(scroll);
   
   
-  hbox = elm_box_add(parent);
-  elm_box_horizontal_set(hbox, 1);
-  elm_box_homogenous_set(hbox, 1);
-  evas_object_size_hint_weight_set(hbox, 1.0, 0.0);
-  elm_box_pack_end(fbox, hbox);
-  evas_object_show(hbox);
+  buttons = elm_box_add(parent);
+  elm_box_horizontal_set(buttons, 1);
+  elm_box_homogenous_set(buttons, 1);
+  evas_object_size_hint_weight_set(buttons, 1.0, 0.0);
+  evas_object_size_hint_align_set(buttons, -1.0, 1.0);
+  elm_box_pack_end(fbox, buttons);
+  evas_object_show(buttons);
   
   wd->save = elm_button_add(parent);
-  //evas_object_size_hint_weight_set(wd->save, 1.0, 0.0);
+  evas_object_size_hint_weight_set(wd->save, 1.0, 1.0);
   evas_object_size_hint_align_set(wd->save, -1.0, 0.0);
   elm_button_label_set(wd->save, _("Save"));
-  elm_box_pack_end(hbox, wd->save);
+  elm_box_pack_end(buttons, wd->save);
   evas_object_show(wd->save);
   evas_object_smart_callback_add(wd->save, "clicked", _save_hook, wd);
   
-  {
-    Evas_Object *close = elm_button_add(parent);
-    //evas_object_size_hint_weight_set(close, 1.0, 0.0);
-    evas_object_size_hint_align_set(close, -1.0, 0.0);
-    elm_button_label_set(close, _("Close"));
-    elm_box_pack_end(hbox, close);
-    evas_object_show(close);
-    evas_object_smart_callback_add(close, "clicked", _close_hook, frame);
-  }
+  close = elm_button_add(parent);
+  evas_object_size_hint_weight_set(close, 1.0, 1.0);
+  evas_object_size_hint_align_set(close, -1.0, 0.0);
+  elm_button_label_set(close, _("Close"));
+  elm_box_pack_end(buttons, close);
+  evas_object_show(close);
+  evas_object_smart_callback_add(close, "clicked", _close_hook, frame);
   
   {
     Eet_File *ef;
