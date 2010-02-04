@@ -2,9 +2,6 @@
 #include"ui_common.h"
 #include"ui_config.h"
 
-#ifndef EET_CONF_FILE
-#define EET_CONF_FILE "." NAME ".eet"
-#endif
 
 #ifndef default_jidres
 #define default_jidres "username@server.domain/" NAME
@@ -38,9 +35,6 @@
 #define default_usetls 1
 #endif
 
-
-//#include<stdlib.h>
-//#include<string.h>
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{

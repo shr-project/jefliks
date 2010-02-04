@@ -76,13 +76,21 @@ _config_hook(void *data, Evas_Object *obj, void *event_info)
 static void
 _about_hook(void *data, Evas_Object *obj, void *event_info)
 {
-  Widget_Data *wd=data;  
+  Widget_Data *wd=data;
   Evas_Object *about = elm_jabber_about_add(wd->parent);
   evas_object_size_hint_weight_set(about, 1.0, 1.0);
   elm_win_resize_object_add(wd->parent, about);
   //evas_object_hide(wd->box);
   evas_object_show(about);
   //evas_object_event_callback_add(about, EVAS_CALLBACK_FREE, _dialog_del, wd);
+}
+
+static void
+_status_hook(void *data, Evas_Object *obj, void *event_info)
+{
+  Widget_Data *wd=data;
+  Elm_Hoversel_Item* item=event_info;
+  elm_hoversel_label_set(obj, elm_hoversel_item_label_get(item));
 }
 
 typedef enum _Jabber_Status Jabber_Status;
@@ -169,11 +177,11 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_size_hint_weight_set(status, 1.0, 1.0);
   evas_object_size_hint_align_set(status, -1.0, 0.0);
   
-  elm_hoversel_item_add(status, _("Offline"), NULL, 0, NULL, NULL);
-  elm_hoversel_item_add(status, _("Online"), NULL, 0, NULL, NULL);
-  elm_hoversel_item_add(status, _("Away"), NULL, 0, NULL, NULL);
-  elm_hoversel_item_add(status, _("Extended Away"), NULL, 0, NULL, NULL);
-  elm_hoversel_item_add(status, _("Do not disturb"), NULL, 0, NULL, NULL);
+  elm_hoversel_item_add(status, _("Offline"), NULL, 0, _status_hook, wd);
+  elm_hoversel_item_add(status, _("Online"), NULL, 0, _status_hook, wd);
+  elm_hoversel_item_add(status, _("Away"), NULL, 0, _status_hook, wd);
+  elm_hoversel_item_add(status, _("Extended Away"), NULL, 0, _status_hook, wd);
+  elm_hoversel_item_add(status, _("Do not disturb"), NULL, 0, _status_hook, wd);
   
   elm_box_pack_end(buttons, status);
   evas_object_show(status);
