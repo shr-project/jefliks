@@ -8,7 +8,7 @@ libs = $(dynlibs) $(stclibs)
 prefix=$(DESTDIR)
 objects = $(sources:.c=.o)
 debug=1
-CFLAGS += $(shell pkg-config --cflags $(libs)) -DNAME=\"$(name)\" -DAUTHOR='"$(author)"'
+CFLAGS += -Wall $(shell pkg-config --cflags $(libs)) -DNAME=\"$(name)\" -DAUTHOR='"$(author)"'
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
 ifdef debug
 CFLAGS += -g

@@ -33,7 +33,7 @@ _close_hook(void *data, Evas_Object *obj, void *event_info)
 }
 
 Evas_Object *elm_jabber_about_add(Evas_Object *parent){
-  Evas_Object *about, *vbox, *hbox, *close, *logo, *text;
+  Evas_Object *about, *box, *close, *logo, *text;
   
   /* Logo Image */
   logo = elm_image_add(parent);
@@ -53,32 +53,22 @@ Evas_Object *elm_jabber_about_add(Evas_Object *parent){
   evas_object_size_hint_align_set(text, -1.0, -1.0);
   evas_object_show(text);
   
-  /* Horizontal SubSet */
-  /*
-  hbox = elm_box_add(parent);
-  elm_box_horizontal_set(hbox, 1);
-  elm_box_pack_end(hbox, logo);
-  elm_box_pack_end(hbox, text);
-  evas_object_show(hbox);
-  */
-  
   /* Close Button */
   close = elm_button_add(parent);
   elm_button_label_set(close, _("Close"));
   evas_object_show(close);
   
-  /* Vertical SubSet */
-  vbox = elm_box_add(parent);
-  /*elm_box_pack_end(vbox, hbox);*/
-  elm_box_pack_end(vbox, logo);
-  elm_box_pack_end(vbox, text);
-  elm_box_pack_end(vbox, close);
-  evas_object_show(vbox);
+  /* Vertical Box */
+  box = elm_box_add(parent);
+  elm_box_pack_end(box, logo);
+  elm_box_pack_end(box, text);
+  elm_box_pack_end(box, close);
+  evas_object_show(box);
   
   /* Main Inwin */
   about = elm_win_inwin_add(parent);
   elm_win_inwin_activate(about);
-  elm_win_inwin_content_set(about, vbox);
+  elm_win_inwin_content_set(about, box);
   
   /* Close Handler */
   evas_object_smart_callback_add(close, "clicked", _close_hook, about);

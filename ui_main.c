@@ -20,8 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include<iksemel.h>
 #include<Elementary.h>
+#include"jabber.h"
 
 #include"ui_common.h"
 #include"ui_main.h"
@@ -32,33 +32,35 @@
 
 
 #ifndef default_status
-#define default_status JS_OFFLINE
+#define default_status JABBER_OFFLINE
 #endif
 
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
-  Evas_Object *parent, *box, *status;
+  Evas_Object *parent, *box, *status, *roster;
+  Jabber_Show selected_status;
+  Jabber_Session *jabber;
 };
 
 static void
-_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
-{
+_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
+  jabber_del(wd->jabber);
   free(wd);
 }
 
 static void
-_exit_hook(void *data, Evas_Object *obj, void *event_info)
-{
+_exit_hook(void *data, Evas_Object *obj, void *event_info){
   elm_exit();
 }
 
 static void
-_dialog_del(void *data, Evas *e, Evas_Object *obj, void *event_info)
+_config_del(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
   Widget_Data *wd=data;
   evas_object_show(wd->box);
+  elm_jabber_config_load(wd->jabber);
 }
 
 static void
@@ -70,7 +72,7 @@ _config_hook(void *data, Evas_Object *obj, void *event_info)
   elm_win_resize_object_add(wd->parent, settings);
   evas_object_hide(wd->box);
   evas_object_show(settings);
-  evas_object_event_callback_add(settings, EVAS_CALLBACK_FREE, _dialog_del, wd);
+  evas_object_event_callback_add(settings, EVAS_CALLBACK_FREE, _config_del, wd);
 }
 
 static void
@@ -80,37 +82,63 @@ _about_hook(void *data, Evas_Object *obj, void *event_info)
   Evas_Object *about = elm_jabber_about_add(wd->parent);
   evas_object_size_hint_weight_set(about, 1.0, 1.0);
   elm_win_resize_object_add(wd->parent, about);
-  //evas_object_hide(wd->box);
   evas_object_show(about);
-  //evas_object_event_callback_add(about, EVAS_CALLBACK_FREE, _dialog_del, wd);
 }
 
-static void
-_status_hook(void *data, Evas_Object *obj, void *event_info)
-{
-  Widget_Data *wd=data;
-  Elm_Hoversel_Item* item=event_info;
-  elm_hoversel_label_set(obj, elm_hoversel_item_label_get(item));
-}
-
-typedef enum _Jabber_Status Jabber_Status;
-enum _Jabber_Status {
-  JS_ONLINE = 0x1,
-  JS_OFFLINE = 0x2,
-  JS_AWAY = 0x3,
-  JS_EXTENDED_AWAY = 0x4,
-  JS_DONT_DISTURB = 0x5
+struct {
+  Jabber_Show code;
+  const char *name;
+} status_list[] = {
+  { JABBER_ONLINE, _("Online") },
+  { JABBER_CHAT, _("Chat") },
+  { JABBER_AWAY, _("Away") },
+  { JABBER_XA, _("Extended Away") },
+  { JABBER_DND, _("Don't Disturb") },
+  { JABBER_OFFLINE, _("Offline") },
+  { 0, NULL }
 };
 
+static Jabber_Show status_by_name(const char *name){
+  int i;
+  for(i=0; status_list[i].name; i++){
+    if(strcmp(status_list[i].name, name)){
+      return status_list[i].code;
+    }
+  }
+  return JABBER_UNDEFINED;
+}
+
 static void
-_status_load(Jabber_Status *status, char **message){
+_status_hook(void *data, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  Elm_Hoversel_Item* item=event_info;
+  const char *statname=elm_hoversel_item_label_get(item);
+  Jabber_Show status=status_by_name(statname);
+  
+  wd->selected_status=status;
+  if(jabber_state(wd->jabber) && status==JABBER_OFFLINE){
+    jabber_disconnect(wd->jabber);
+    elm_hoversel_label_set(obj, statname);
+  }
+  if(!jabber_state(wd->jabber) && status!=JABBER_OFFLINE){
+    elm_hoversel_label_set(obj, _("Connecting.."));
+    if(jabber_connect(wd->jabber)){
+      elm_hoversel_label_set(obj, _("Connected"));
+    }
+    //elm_hoversel_label_set(obj, statname);
+  }
+}
+
+
+static void
+_status_load(Jabber_Show *status){
   Eet_File *ef;
-  int size;
   char *val;
+  int size;
   
   ef = eet_open(EET_CONF_FILE, EET_FILE_MODE_READ);
   *status=default_status;
-  *message=NULL;
+  
   if(ef){
     val=eet_read(ef, "last_status", &size);
     if(val){
@@ -122,9 +150,8 @@ _status_load(Jabber_Status *status, char **message){
 }
 
 static void
-_status_save(Jabber_Status status, const char *message){
+_status_save(Jabber_Show status){
   Eet_File *ef;
-  int size;
   char st;
   char *val;
   
@@ -138,11 +165,44 @@ _status_save(Jabber_Status status, const char *message){
   }
 }
 
+static void
+_error_notify_close(void *data, Evas_Object *obj, void *event_info){
+  Evas_Object *notify = data;
+  evas_object_hide(notify);
+}
+
+static void
+_error_notify_show(Widget_Data *wd, Jabber_Session *sess, const char *message){
+  Evas_Object *notify, *box, *text, *close;
+  
+  notify = elm_notify_add(wd->parent);
+  evas_object_size_hint_weight_set(notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+  
+  box = elm_box_add(wd->parent);
+  elm_notify_content_set(notify, box);
+  elm_box_horizontal_set(box, 1);
+  evas_object_show(box);
+  
+  text = elm_label_add(wd->parent);
+  elm_label_label_set(text, message);
+  elm_box_pack_end(box, text);
+  evas_object_show(text);
+  
+  close = elm_button_add(wd->parent);
+  elm_button_label_set(close, _("Close"));
+  evas_object_smart_callback_add(close, "clicked", _error_notify_close, notify);
+  elm_box_pack_end(box, close);
+  evas_object_show(close);
+}
+
 Evas_Object *elm_jabber_main(Evas_Object *parent){
   Widget_Data *wd;
   Evas_Object *box, *buttons, *status, *actions, *roster;
   
   wd = malloc(sizeof(Widget_Data));
+  wd->jabber=jabber_new();
+  jabber_error_callback_set(wd->jabber, (Jabber_Callback)_error_notify_show, wd);
+  elm_jabber_config_load(wd->jabber);
   wd->parent=parent;
   
   /* Main box */
@@ -155,6 +215,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   
   /* Roster */
   roster = elm_jabber_roster_add(parent);
+  wd->roster=roster;
   evas_object_size_hint_weight_set(roster, 1.0, 1.0);
   evas_object_size_hint_align_set(roster, -1.0, -1.0);
   elm_box_pack_end(box, roster);
@@ -177,11 +238,12 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_size_hint_weight_set(status, 1.0, 1.0);
   evas_object_size_hint_align_set(status, -1.0, 0.0);
   
-  elm_hoversel_item_add(status, _("Offline"), NULL, 0, _status_hook, wd);
-  elm_hoversel_item_add(status, _("Online"), NULL, 0, _status_hook, wd);
-  elm_hoversel_item_add(status, _("Away"), NULL, 0, _status_hook, wd);
-  elm_hoversel_item_add(status, _("Extended Away"), NULL, 0, _status_hook, wd);
-  elm_hoversel_item_add(status, _("Do not disturb"), NULL, 0, _status_hook, wd);
+  {
+    int i;
+    for(i=0; status_list[i].name; i++){
+      elm_hoversel_item_add(status, status_list[i].name, NULL, 0, _status_hook, wd);
+    }
+  }
   
   elm_box_pack_end(buttons, status);
   evas_object_show(status);

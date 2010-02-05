@@ -1,22 +1,12 @@
 #include<Elementary.h>
+#include"jabber.h"
+
 #include"ui_common.h"
 #include"ui_config.h"
 
 
 #ifndef default_jidres
 #define default_jidres "username@server.domain/" NAME
-#endif
-
-#ifndef default_res
-#define default_res NAME
-#endif
-
-#ifndef default_port
-#define default_port 5222
-#endif
-
-#ifndef default_tlsport
-#define default_tlsport 5223
 #endif
 
 #ifndef default_passwd
@@ -269,94 +259,90 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   return frame;
 }
 
-int elm_jabber_config_opt(char **jidres, char **passwd, char **server, int *port, char *usetls){
+int elm_jabber_config_load(Jabber_Session *sess){
+  char *jidres=NULL, *passwd=NULL, *server=NULL;
+  int port=0;
+  char usetls=1, sasl=1, plain=1;
+  
   Eet_File *ef;
   int size;
   char se=0;
   char *val=NULL, *tmp=NULL;
+  
   ef = eet_open(EET_CONF_FILE, EET_FILE_MODE_READ);
   
-  if(ef){
-    // JID / Resource
-    *jidres=NULL;
-    val=eet_read(ef, "jidres", &size);
-    if(val){
-      if(strchr(val, '@')){
-	tmp=strchr(val, '/');
-	if(tmp){
-	  val=realloc(val, strlen(val)+1+strlen(default_res));
-	  strcat(val, "/");
-	  strcat(val, default_res);
-	}
-	*jidres=val;
-      }else{
-	free(val);
-      }
-    }
-    // Password
-    *passwd=NULL;
-    val=eet_read(ef, "passwd", &size);
-    if(val){
-      *passwd=val;
-    }
-    // Use TLS
-    *usetls=0;
-    val=eet_read(ef, "usetls", &size);
-    if(val){
-      *usetls=val[0];
+  if(!ef)return 0;
+  
+  // JID / Resource
+  val=eet_read(ef, "jidres", &size);
+  if(val){
+    if(strchr(val, '@')){
+      jidres=val;
+    }else{
       free(val);
     }
-    // Server / Port
-    *server=NULL; *port=0;
-    val=eet_read(ef, "server_enable", &size);
-    se=val[0];
+  }
+  // Password
+  val=eet_read(ef, "passwd", &size);
+  if(val){
+    passwd=val;
+  }
+  // Use TLS
+  val=eet_read(ef, "usetls", &size);
+  if(val){
+    usetls=*val;
     free(val);
-    if(se){
-      val=eet_read(ef, "passwd", &size);
-      if(val){
-	tmp=strchr(val, ':');
-	if(tmp){
-	  *tmp='\0';
-	  *port=atoi(tmp+1);
-	}
-	if(*port<0||*port>65535)*port=0;
-	if(strlen(val)>0)*server=strdup(val);
-	free(val);
-      }
-    }
-    // Set port automatically
-    if(!*port)*port=*usetls?default_tlsport:default_port;
-    // Try get server from JID
-    if(!*server){
-      val=strdup(*jidres);
-      tmp=strchr(val, '/');
+  }
+  // Server / Port
+  val=eet_read(ef, "server_enable", &size);
+  se=*val;
+  free(val);
+  if(se){
+    val=eet_read(ef, "server", &size);
+    if(val){
+      tmp=strchr(val, ':');
       if(tmp){
 	*tmp='\0';
-	tmp=strchr(val, '@');
-	if(tmp && strlen(tmp+1)>0){
-	  *server=strdup(tmp+1);
-	}
+	port=atoi(tmp+1);
       }
+      if(port<0||port>65535)port=0;
+      if(strlen(val)>0)server=strdup(val);
       free(val);
     }
-    
-    eet_close(ef);
   }
   
-  if(!*jidres || !*server || !*port) return -1;
-  return 0;
+  eet_close(ef);
+  
+  printf("Load Config\n");
+  
+  Jabber_State state=jabber_state(sess);
+  jabber_disconnect(sess);
+  printf("[\n");
+  jabber_config(sess, jidres, passwd, server, port,
+		(usetls?JABBER_USETLS:0)|
+		(plain?JABBER_PLAIN:0)|(sasl?JABBER_SASL:0));
+  printf("]\n");
+  if(state!=JABBER_DISCONNECTED)jabber_connect(sess);
+  
+  printf(".. %s %s %s\n", jidres, passwd, server);
+  
+  if(jidres)free(jidres);
+  if(passwd)free(passwd);
+  if(server)free(server);
+  
+  return 1;
 }
 
 #ifdef TEST_JABBER_CONFIG
 #define TEST_JABBER_POST {						\
-    char *jid, *res, *passwd, *server;					\
+    char *jidres, *passwd, *server;					\
     int port;								\
     char usetls;							\
     									\
-    if(!elm_jabber_config_opt(&jid, &res,	&passwd,		\
-			      &server, &port, &usetls)) {		\
-      printf("jid:%s res:%s passwd:%s server:%s port:%d usetls:%d\n",	\
-	     jid,res, passwd?passwd:"", server, port, usetls);		\
+    if(!elm_jabber_config_opt(&jidres, &passwd,	&server,		\
+			      &port, &usetls)) {			\
+      printf("jidres:%s passwd:%s server:%s port:%d usetls:%d\n",	\
+	     jidres, passwd?passwd:"", server, port, usetls);		\
     }else{								\
       printf("error configuring!\n");					\
     }									\

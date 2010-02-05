@@ -20,8 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include<iksemel.h>
 #include<Elementary.h>
+#include"jabber.h"
 
 #include"ui_common.h"
 #include"ui_roster.h"
@@ -32,8 +32,7 @@ struct _Widget_Data{
 };
 
 static void
-_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
-{
+_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   free(wd);
 }
@@ -49,6 +48,7 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   return roster;
 }
 
+/*
 int elm_jabber_roster_set(Evas_Object *roster, const iks *data){
   
 }
@@ -56,3 +56,4 @@ int elm_jabber_roster_set(Evas_Object *roster, const iks *data){
 int elm_jabber_roster_get(Evas_Object *roster, iks **data){
   
 }
+*/

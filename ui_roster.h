@@ -24,7 +24,7 @@
 #define __UI_ROSTER__
 
 Evas_Object *elm_jabber_roster_add(Evas_Object *parent);
-int elm_jabber_roster_set(Evas_Object *roster, const iks *data);
-int elm_jabber_roster_get(Evas_Object *roster, iks **data);
+//int elm_jabber_roster_set(Evas_Object *roster, const iks *data);
+//int elm_jabber_roster_get(Evas_Object *roster, iks **data);
 
 #endif

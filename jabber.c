@@ -23,6 +23,7 @@
 #include"jabber.h"
 
 #include<stdlib.h>
+#include<stdarg.h>
 #include<stdio.h>
 #include<string.h>
 #include<memory.h>
@@ -34,12 +35,9 @@
 
 #define ERROR_BUFFER 2048
 
-#define set_error(...) if(sess->error.func){			\
-    char *error = iks_malloc(ERROR_BUFFER);			\
-    sprintf(error, __VA_ARGS__);				\
-    sess->error.func((void*)sess->error.data, sess, error);	\
-    iks_free(error);						\
-  }
+
+#define set_error(...) set_error_ex(sess, __VA_ARGS__);
+#define set_state(state) set_state_ex(sess, state);
 
 typedef struct _Jabber_Callback_Object Jabber_Callback_Object;
 struct _Jabber_Callback_Object {
@@ -54,26 +52,54 @@ struct _Jabber_Session {
   char *server;
   int port;
   char *passwd;
-  Jabber_Options options;
+  Jabber_Option option;
   int features;
-  int authorized;
+  char authorized;
   int counter;
-  int job_done;
+  char job_done;
   /* precious roster we'll deal with */
   iks *roster;
   /* out packet filter */
   iksfilter *filter;
-  /* error message */
-  Jabber_Callback_Object error;
+  /* callbacks */
+  Jabber_Callback_Object error_cb;
+  Jabber_Callback_Object state_cb;
+  char state;
 };
+
+
+static void
+set_error_ex(Jabber_Session *sess, const char *format, ...){
+  va_list args;
+  char errbuf[ERROR_BUFFER];
+  
+  va_start(args, format);
+  vsnprintf(errbuf, ERROR_BUFFER, format, args);
+  va_end(args);
+  
+  if(sess->error_cb.func){
+    sess->error_cb.func((void*)sess->error_cb.data, sess, errbuf);
+  }else{
+    fprintf(stderr, "%s\n", errbuf);
+  }
+}
+
+static void
+set_state_ex(Jabber_Session *sess, Jabber_State state){
+  if(state!=sess->state){
+    sess->state=state;
+    if(sess->state_cb.func){
+      sess->state_cb.func((void*)sess->state_cb.data, sess, (void*)state);
+    }
+  }
+}
+
 
 /* connection time outs if nothing comes for this much seconds */
 static const int opt_timeout = 30;
 
-
 static int
-on_result (Jabber_Session *sess, ikspak *pak)
-{
+on_result (Jabber_Session *sess, ikspak *pak){
   iks *x;
   
   //if (sess->set_roster == 0) {
@@ -94,15 +120,15 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
   
   switch (type) {
   case IKS_NODE_START:
-    if (sess->options & JABBER_USETLS && !iks_is_secure (sess->prs)) {
+    if (sess->option & JABBER_USETLS && !iks_is_secure (sess->prs)) {
       iks_start_tls (sess->prs);
       break;
     }
-    if (!(sess->options & JABBER_SASL)) {
+    if (!(sess->option & JABBER_SASL)) {
       iks *x;
       char *sid = NULL;
 
-      if (!(sess->options & JABBER_PLAIN)) sid = iks_find_attrib (node, "id");
+      if (!(sess->option & JABBER_PLAIN)) sid = iks_find_attrib (node, "id");
       x = iks_make_auth (sess->acc, sess->passwd, sid);
       iks_insert_attrib (x, "id", "auth");
       iks_send (sess->prs, x);
@@ -113,8 +139,8 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
   case IKS_NODE_NORMAL:
     if (strcmp ("stream:features", iks_name (node)) == 0) {
       sess->features = iks_stream_features (node);
-      if (sess->options & JABBER_SASL) {
-	if (sess->options & JABBER_USETLS && !iks_is_secure (sess->prs)) break;
+      if (sess->option & JABBER_SASL) {
+	if (sess->option & JABBER_USETLS && !iks_is_secure (sess->prs)) break;
 	if (sess->authorized) {
 	  iks *t;
 	  if (sess->features & IKS_STREAM_BIND) {
@@ -148,10 +174,11 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
       if (sess->job_done == 1) return IKS_HOOK;
     }
     break;
-
+    
   case IKS_NODE_STOP:
+    set_state(JABBER_DISCONNECTED);
     set_error(_("Server disconnected"));
-
+    
   case IKS_NODE_ERROR:
     set_error(_("Stream error"));
   }
@@ -163,6 +190,7 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
 static int
 on_error (Jabber_Session *sess, ikspak *pak) {
   set_error(_("Authorization failed"));
+  set_state(JABBER_DISCONNECTED);
   return IKS_FILTER_EAT;
 }
 
@@ -205,61 +233,93 @@ Jabber_Session *jabber_new(){
   Jabber_Session *sess;
   
   sess = iks_malloc(sizeof(Jabber_Session));
+  memset(sess, 0, sizeof(Jabber_Session));
   
   sess->prs = iks_stream_new(IKS_NS_CLIENT, &sess, (iksStreamHook *)on_stream);
-  sess->acc = NULL;
-}
-
-static void
-session_clean(Jabber_Session *sess){
-  if(sess->acc){
-    iks_free(sess->acc);
-    sess->acc = NULL;
-  }
+  
+  return sess;
 }
 
 void jabber_del(Jabber_Session *sess){
-  //session_clean(sess);
-  
+  jabber_disconnect(sess);
   if(sess->prs)iks_parser_delete(sess->prs);
   
   iks_free(sess);
 }
 
-int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, const char *server, int port, Jabber_Options opts){
-  sess->options = opts;
+#ifndef default_res
+#define default_res NAME
+#endif
+
+#ifndef default_port
+#define default_port 5222
+#endif
+
+#ifndef default_tlsport
+#define default_tlsport 5223
+#endif
+
+int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, const char *server, int port, Jabber_Option opts){
+  sess->option = opts;
   
   if(opts&JABBER_LOG)iks_set_log_hook(sess->prs, (iksLogHook *)on_log);
   else iks_set_log_hook(sess->prs, NULL);
   
   sess->acc = iks_id_new(iks_parser_stack(sess->prs), jidres);
-
-  if(server)sess->server=strdup(server);
-  if(port)sess->port=port;
+  if(!sess->acc->resource){ /* user gave no resource name, use the default */
+    char *tmp;
+    tmp = iks_malloc(strlen(sess->acc->user)+1+strlen(sess->acc->server)+1+strlen(default_res)+1);
+    sprintf (tmp, "%s@%s/%s", sess->acc->user, sess->acc->server, default_res);
+    sess->acc = iks_id_new(iks_parser_stack(sess->prs), tmp);
+    iks_free(tmp);
+  }
   if(passwd)sess->passwd=strdup(passwd);
   
+  if(server)sess->server=strdup(server);
+  if(port)sess->port=port;
+  
+  // Set port automatically
+  if(!sess->port)sess->port=(opts & JABBER_USETLS)?default_tlsport:default_port;
+  // Try get server from JID
+  if(!sess->server || !strlen(sess->server)){
+    if(sess->server)free(sess->server);
+    sess->server=strdup(sess->acc->server);
+  }
+  
+  printf("%s %s %s\n", sess->acc->user, sess->acc->server, sess->acc->resource);
+  
   setup_filter(sess);
+  return 1;
 }
 
 void jabber_error_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data){
-  sess->error.func=func;
-  sess->error.data=data;
+  sess->error_cb.func=func;
+  sess->error_cb.data=data;
+}
+
+void jabber_state_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data){
+  sess->state_cb.func=func;
+  sess->state_cb.data=data;
 }
 
 int jabber_connect(Jabber_Session *sess){
   int e;
   
+  set_state(JABBER_CONNECTING);
   e = iks_connect_tcp(sess->prs, sess->server, sess->port);
   switch (e) {
   case IKS_OK:
     break;
   case IKS_NET_NODNS:
     set_error(_("Hostname lookup failed"));
+    set_state(JABBER_DISCONNECTED);
     return 0;
   case IKS_NET_NOCONN:
     set_error(_("Connection failed"));
+    set_state(JABBER_DISCONNECTED);
     return 0;
   default:
+    set_state(JABBER_DISCONNECTED);
     set_error(_("IO Error"));
     return 0;
   }
@@ -267,17 +327,41 @@ int jabber_connect(Jabber_Session *sess){
   sess->counter = opt_timeout;
   while (1) {
     e = iks_recv (sess->prs, 1);
-    if (IKS_HOOK == e) return 1;
-    if (IKS_NET_TLSFAIL == e) set_error(_("TLS handshake failed"));
-    if (IKS_OK != e) set_error(_("IO Error"));
+    if (IKS_HOOK == e){
+      set_state(JABBER_CONNECTED);
+      return 1;
+    }
+    if (IKS_NET_TLSFAIL == e){
+      set_error(_("TLS handshake failed"));
+      set_state(JABBER_DISCONNECTED);
+      return 0;
+    }
+    if (IKS_OK != e){
+      set_error(_("IO Error"));
+      set_state(JABBER_DISCONNECTED);
+      return 0;
+    }
     sess->counter--;
-    if (sess->counter == 0) set_error(_("Network timeout"));
+    if (sess->counter == 0){
+      set_error(_("Network timeout"));
+      set_state(JABBER_DISCONNECTED);
+      return 0;
+    }
   }
   
   return 0;
 }
 
 int jabber_disconnect(Jabber_Session *sess){
-  iks_disconnect(sess->prs);
-  return 1;
+  if(sess->state!=JABBER_DISCONNECTED){
+    set_state(JABBER_DISCONNECTED);
+    iks_disconnect(sess->prs);
+    sess->authorized=0;
+    return 1;
+  }
+  return 0;
+}
+
+Jabber_State jabber_state(Jabber_Session *sess){
+  return sess->state;
 }
