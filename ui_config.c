@@ -269,7 +269,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   return frame;
 }
 
-int elm_jabber_config_opt(char **jid, char **res, char **passwd, char **server, int *port, char *usetls){
+int elm_jabber_config_opt(char **jidres, char **passwd, char **server, int *port, char *usetls){
   Eet_File *ef;
   int size;
   char se=0;
@@ -278,25 +278,26 @@ int elm_jabber_config_opt(char **jid, char **res, char **passwd, char **server, 
   
   if(ef){
     // JID / Resource
-    *jid=NULL; *res=NULL;
+    *jidres=NULL;
     val=eet_read(ef, "jidres", &size);
     if(val){
-      tmp=strchr(val, '/');
-      if(tmp){
-	*tmp='\0';
-	*res=strdup(tmp+1);
+      if(strchr(val, '@')){
+	tmp=strchr(val, '/');
+	if(tmp){
+	  val=realloc(val, strlen(val)+1+strlen(default_res));
+	  strcat(val, "/");
+	  strcat(val, default_res);
+	}
+	*jidres=val;
       }else{
-	*res=strdup(default_res);
+	free(val);
       }
-      *jid=strdup(val);
-      free(val);
     }
     // Password
     *passwd=NULL;
     val=eet_read(ef, "passwd", &size);
     if(val){
-      *passwd=strdup(val);
-      free(val);
+      *passwd=val;
     }
     // Use TLS
     *usetls=0;
@@ -327,10 +328,14 @@ int elm_jabber_config_opt(char **jid, char **res, char **passwd, char **server, 
     if(!*port)*port=*usetls?default_tlsport:default_port;
     // Try get server from JID
     if(!*server){
-      val=strdup(*jid);
-      tmp=strchr(val, '@');
-      if(tmp && strlen(tmp+1)>0){
-	*server=strdup(tmp+1);
+      val=strdup(*jidres);
+      tmp=strchr(val, '/');
+      if(tmp){
+	*tmp='\0';
+	tmp=strchr(val, '@');
+	if(tmp && strlen(tmp+1)>0){
+	  *server=strdup(tmp+1);
+	}
       }
       free(val);
     }
@@ -338,7 +343,7 @@ int elm_jabber_config_opt(char **jid, char **res, char **passwd, char **server, 
     eet_close(ef);
   }
   
-  if(!*jid || !*res || !*server || !*port) return -1;
+  if(!*jidres || !*server || !*port) return -1;
   return 0;
 }
 
