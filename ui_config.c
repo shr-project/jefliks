@@ -262,7 +262,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
 int elm_jabber_config_load(Jabber_Session *sess){
   char *jidres=NULL, *passwd=NULL, *server=NULL;
   int port=0;
-  char usetls=1, sasl=1, plain=1;
+  char usetls=default_usetls, sasl=0, plain=0;
   
   Eet_File *ef;
   int size;
@@ -313,18 +313,14 @@ int elm_jabber_config_load(Jabber_Session *sess){
   
   eet_close(ef);
   
-  printf("Load Config\n");
-  
-  Jabber_State state=jabber_state(sess);
-  jabber_disconnect(sess);
-  printf("[\n");
-  jabber_config(sess, jidres, passwd, server, port,
-		(usetls?JABBER_USETLS:0)|
-		(plain?JABBER_PLAIN:0)|(sasl?JABBER_SASL:0));
-  printf("]\n");
-  if(state!=JABBER_DISCONNECTED)jabber_connect(sess);
-  
-  printf(".. %s %s %s\n", jidres, passwd, server);
+  {
+    Jabber_State state=jabber_state(sess);
+    jabber_disconnect(sess);
+    jabber_config(sess, jidres, passwd, server, port,
+		  (usetls?JABBER_USETLS:0)|(JABBER_LOG)|
+		  (plain?JABBER_PLAIN:0)|(sasl?JABBER_SASL:0));
+    if(state!=JABBER_DISCONNECTED)jabber_connect(sess);
+  }
   
   if(jidres)free(jidres);
   if(passwd)free(passwd);

@@ -86,8 +86,8 @@ _about_hook(void *data, Evas_Object *obj, void *event_info)
 }
 
 struct {
-  Jabber_Show code;
-  const char *name;
+  Jabber_Show status;
+  const char *title;
 } status_list[] = {
   { JABBER_ONLINE, _("Online") },
   { JABBER_CHAT, _("Chat") },
@@ -98,37 +98,64 @@ struct {
   { 0, NULL }
 };
 
-static Jabber_Show status_by_name(const char *name){
+static Jabber_Show status_by_title(const char *title){
   int i;
-  for(i=0; status_list[i].name; i++){
-    if(strcmp(status_list[i].name, name)){
-      return status_list[i].code;
+  for(i=0; status_list[i].title; i++){
+    if(strcmp(status_list[i].title, title)){
+      return status_list[i].status;
     }
   }
   return JABBER_UNDEFINED;
+}
+
+static const char *title_by_status(Jabber_Show status){
+  int i;
+  for(i=0; status_list[i].title; i++){
+    if(status==status_list[i].status){
+      return status_list[i].title;
+    }
+  }
+  return NULL;
 }
 
 static void
 _status_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   Elm_Hoversel_Item* item=event_info;
-  const char *statname=elm_hoversel_item_label_get(item);
-  Jabber_Show status=status_by_name(statname);
   
-  wd->selected_status=status;
-  if(jabber_state(wd->jabber) && status==JABBER_OFFLINE){
-    jabber_disconnect(wd->jabber);
-    elm_hoversel_label_set(obj, statname);
-  }
-  if(!jabber_state(wd->jabber) && status!=JABBER_OFFLINE){
-    elm_hoversel_label_set(obj, _("Connecting.."));
-    if(jabber_connect(wd->jabber)){
-      elm_hoversel_label_set(obj, _("Connected"));
+  wd->selected_status=status_by_title(elm_hoversel_item_label_get(item));
+  
+  if(wd->selected_status==JABBER_OFFLINE){
+    if(jabber_state(wd->jabber)!=JABBER_DISCONNECTED){
+      jabber_disconnect(wd->jabber);
     }
-    //elm_hoversel_label_set(obj, statname);
+  }else{
+    if(jabber_state(wd->jabber)==JABBER_CONNECTED){
+      // send presense only
+    }else{
+      jabber_connect(wd->jabber);
+    }
   }
 }
 
+static void
+_state_change_hook(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
+  const char *title=_("Undefined..");
+  
+  switch(state){
+  case JABBER_DISCONNECTED:
+    title=title_by_status(JABBER_OFFLINE);
+    break;
+  case JABBER_CONNECTING:
+    title=_("Connecting..");
+    break;
+  case JABBER_CONNECTED:
+    title=title_by_status(wd->selected_status);
+    // send presense
+    break;
+  }
+  elm_hoversel_label_set(wd->status, title);
+}
 
 static void
 _status_load(Jabber_Show *status){
@@ -172,8 +199,10 @@ _error_notify_close(void *data, Evas_Object *obj, void *event_info){
 }
 
 static void
-_error_notify_show(Widget_Data *wd, Jabber_Session *sess, const char *message){
+_error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
   Evas_Object *notify, *box, *text, *close;
+  
+  printf("ERROR: %s\n", message);
   
   notify = elm_notify_add(wd->parent);
   evas_object_size_hint_weight_set(notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -201,7 +230,8 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   
   wd = malloc(sizeof(Widget_Data));
   wd->jabber=jabber_new();
-  jabber_error_callback_set(wd->jabber, (Jabber_Callback)_error_notify_show, wd);
+  jabber_error_callback_set(wd->jabber, (Jabber_Callback)_error_notify_hook, wd);
+  jabber_state_callback_set(wd->jabber, (Jabber_Callback)_state_change_hook, wd);
   elm_jabber_config_load(wd->jabber);
   wd->parent=parent;
   
@@ -240,8 +270,8 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   
   {
     int i;
-    for(i=0; status_list[i].name; i++){
-      elm_hoversel_item_add(status, status_list[i].name, NULL, 0, _status_hook, wd);
+    for(i=0; status_list[i].title; i++){
+      elm_hoversel_item_add(status, status_list[i].title, NULL, 0, _status_hook, wd);
     }
   }
   
