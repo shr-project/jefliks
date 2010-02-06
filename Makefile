@@ -1,4 +1,5 @@
 name = jelmiks
+version = 0.0.1
 author = Phoenix Kayo <kayo.k11.4@gmail.com>
 sources = main.c jabber.c ui_config.c ui_about.c ui_roster.c ui_main.c
 dynlibs = evas ecore edje ecore-evas eina-0 elementary  # 
@@ -15,6 +16,7 @@ CFLAGS += -g
 endif
 
 #CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG
+CFLAGS+=-DVERSION=\"$(version)\"
 
 all: $(name).elf #$(name).edj
 

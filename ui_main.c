@@ -130,6 +130,7 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
       jabber_disconnect(wd->jabber);
     }
   }else{
+    jabber_status_set(wd->jabber, wd->selected_status, _("I'm Jefliks!"));
     if(jabber_state(wd->jabber)==JABBER_CONNECTED){
       // send presense only
     }else{
@@ -151,7 +152,6 @@ _state_change_hook(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
     break;
   case JABBER_CONNECTED:
     title=title_by_status(wd->selected_status);
-    // send presense
     break;
   }
   elm_hoversel_label_set(wd->status, title);
@@ -206,6 +206,7 @@ _error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
   
   notify = elm_notify_add(wd->parent);
   evas_object_size_hint_weight_set(notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+  elm_win_resize_object_add(wd->parent, notify);
   
   box = elm_box_add(wd->parent);
   elm_notify_content_set(notify, box);
@@ -222,6 +223,8 @@ _error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
   evas_object_smart_callback_add(close, "clicked", _error_notify_close, notify);
   elm_box_pack_end(box, close);
   evas_object_show(close);
+  
+  evas_object_show(notify);
 }
 
 Evas_Object *elm_jabber_main(Evas_Object *parent){

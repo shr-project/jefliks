@@ -68,6 +68,10 @@ struct _Jabber_Session {
   Jabber_Callback_Object error_cb;
   Jabber_Callback_Object state_cb;
   char state;
+  /* presence */
+  int priority;
+  Jabber_Show show;
+  char *show_desc;
 };
 
 
@@ -91,31 +95,95 @@ static void
 set_state_ex(Jabber_Session *sess, Jabber_State state){
   if(state!=sess->state){
     sess->state=state;
+    if(state==JABBER_DISCONNECTED){
+      jabber_disconnect(sess);
+    }
     if(sess->state_cb.func){
       sess->state_cb.func((void*)sess->state_cb.data, sess, (void*)state);
     }
   }
 }
 
+/*
+int jabber_send_message(Jabber_Session *sess, iks *x){
+  return iks_send(sess->prs, x)==IKS_OK;
+}
+*/
 
-/* connection time outs if nothing comes for this much seconds */
-static const int opt_timeout = 30;
+static void
+get_roster(Jabber_Session *sess){
+  iks *x;
+  x = iks_make_iq (IKS_TYPE_GET, IKS_NS_ROSTER);
+  iks_insert_attrib(x, "id", "roster");
+  iks_send(sess->prs, x);
+  iks_delete (x);
+}
 
 static int
 on_result (Jabber_Session *sess, ikspak *pak){
-  iks *x;
+  get_roster(sess);
   
-  //if (sess->set_roster == 0) {
-  x = iks_make_iq (IKS_TYPE_GET, IKS_NS_ROSTER);
-  iks_insert_attrib (x, "id", "roster");
-  iks_send (sess->prs, x);
-  iks_delete (x);
-  /*} else {
-    iks_insert_attrib (my_roster, "type", "set");
-    iks_send (sess->prs, my_roster);
-    }*/
   return IKS_FILTER_EAT;
 }
+
+static void
+set_presence(Jabber_Session *sess, char *to, int show, char *desc){
+  const char *from = sess->acc->full;
+  int res = 0;
+  iks *presence = iks_make_pres(show, desc?desc:"");
+  iks *cnode = iks_new("c");
+  iks *priority = iks_new("priority");
+  char priority_string[10];
+  
+  if(sess && presence && cnode && priority){
+    if(to){
+      iks_insert_attrib(presence, "to", to);
+    }
+    if(from){
+      iks_insert_attrib(presence, "from", from);
+    }
+    snprintf(priority_string, sizeof(priority_string), "%d", sess->priority);
+    iks_insert_cdata(priority, priority_string, strlen(priority_string));
+    iks_insert_node(presence, priority);
+    iks_insert_attrib(cnode, "node", "http://www.asterisk.org/xmpp/client/caps");
+    iks_insert_attrib(cnode, "ver", NAME);
+    iks_insert_attrib(cnode, "ext", VERSION);
+    iks_insert_attrib(cnode, "xmlns", "http://jabber.org/protocol/caps");
+    iks_insert_node(presence, cnode);
+    res = iks_send(sess->prs, presence);
+  } else {
+    set_error("set_presence: Out of memory.\n");
+  }
+  
+  iks_delete(cnode);
+  iks_delete(presence);
+  iks_delete(priority);
+}
+
+static int
+on_roster (Jabber_Session *sess, ikspak *pak) {
+  sess->roster = pak->x;
+  
+  set_presence(sess, NULL, sess->show, sess->show_desc);
+  
+  return IKS_FILTER_EAT;
+}
+
+int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc){
+  if(show!=JABBER_UNDEFINED){
+    if(sess->show_desc)free(sess->show_desc);
+    sess->show_desc=NULL;
+    if(desc)sess->show_desc=strdup(desc);
+    
+    sess->show=show;
+    if(sess->state==JABBER_CONNECTED) set_presence(sess, NULL, sess->show, sess->show_desc);
+    return 1;
+  }
+  return 0;
+}
+
+/* connection time outs if nothing comes for this much seconds */
+static const int opt_timeout = 30;
 
 static int
 on_stream (Jabber_Session *sess, int type, iks *node) {
@@ -132,8 +200,6 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
       char *sid = NULL;
       
       if (!(sess->option & JABBER_PLAIN)) sid = iks_find_attrib (node, "id");
-      printf("%x!!!\n", sess);
-      printf("%s %s %s %s %s\n", sess->acc->user, sess->acc->server, sess->acc->resource, sess->passwd, sid);
       x = iks_make_auth (sess->acc, sess->passwd, sid);
       iks_insert_attrib (x, "id", "auth");
       iks_send (sess->prs, x);
@@ -199,13 +265,6 @@ on_error (Jabber_Session *sess, ikspak *pak) {
   return IKS_FILTER_EAT;
 }
 
-static int
-on_roster (Jabber_Session *sess, ikspak *pak) {
-  sess->roster = pak->x;
-  sess->job_done = 1;
-  return IKS_FILTER_EAT;
-}
-
 static void
 on_log (Jabber_Session *sess, const char *data, size_t size, int is_incoming) {
   if (iks_is_secure (sess->prs)) fprintf (stderr, "Sec");
@@ -248,6 +307,7 @@ Jabber_Session *jabber_new(){
 void jabber_del(Jabber_Session *sess){
   jabber_disconnect(sess);
   
+  if(sess->show_desc)free(sess->show_desc);
   if(sess->filter)iks_filter_delete(sess->filter);
   if(sess->prs)iks_parser_delete(sess->prs);
   
@@ -292,8 +352,11 @@ int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, 
     if(sess->server)free(sess->server);
     sess->server=strdup(sess->acc->server);
   }
+
+  sess->priority=4;
   
   setup_filter(sess);
+  
   return 1;
 }
 

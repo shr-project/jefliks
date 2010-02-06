@@ -25,22 +25,32 @@
 #define default_usetls 1
 #endif
 
+#ifndef default_plain
+#define default_plain 1
+#endif
+
+#ifndef default_sasl
+#define default_sasl 0
+#endif
+
+#ifndef default_anon
+#define default_anon 0
+#endif
+
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
-  Evas_Object *jidres, *passwd, *server, *server_enable, *usetls, *save;
+  Evas_Object *jidres, *passwd, *server, *server_enable, *usetls, *plain, *sasl, *anon, *save;
 };
 
 static void
-_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info)
-{
+_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   free(wd);
 }
 
 static void
-_server_enable_hook(void *data, Evas_Object *obj, void *event_info)
-{
+_server_enable_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   char st;
   
@@ -49,15 +59,22 @@ _server_enable_hook(void *data, Evas_Object *obj, void *event_info)
 }
 
 static void
-_close_hook(void *data, Evas_Object *obj, void *event_info)
-{
+_sasl_enable_hook(void *data, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  char st;
+  
+  st=elm_check_state_get(wd->sasl);
+  elm_object_disabled_set(wd->anon, !st);
+}
+
+static void
+_close_hook(void *data, Evas_Object *obj, void *event_info){
   Evas_Object *frame=data;
   evas_object_del(frame);
 }
 
 static void
-_save_hook(void *data, Evas_Object *obj, void *event_info)
-{
+_save_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   Eet_File *ef;
   char st;
@@ -74,29 +91,33 @@ _save_hook(void *data, Evas_Object *obj, void *event_info)
     return;
   }
   
-#define GET_VAL(name)					\
+#define SAVE_OPT(name)					\
   val=elm_entry_entry_get(wd->name);			\
   eet_write(ef, #name, val, strlen(val)+1, 0);
   
-  GET_VAL(jidres);
-  GET_VAL(passwd);
-  GET_VAL(server);
-#undef GET_VAL
+  SAVE_OPT(jidres);
+  SAVE_OPT(passwd);
+  SAVE_OPT(server);
+#undef SAVE_OPT
   
-  st=elm_check_state_get(wd->server_enable);
-  val=&st;
-  eet_write(ef, "server_enable", val, 1, 0);
+#define SAVE_OPT(name)				\
+  st=elm_check_state_get(wd->name);		\
+  val=&st;					\
+  eet_write(ef, #name, val, 1, 0);
   
-  st=elm_check_state_get(wd->usetls);
-  val=&st;
-  eet_write(ef, "usetls", val, 1, 0);
+  SAVE_OPT(server_enable);
+  SAVE_OPT(usetls);
+  SAVE_OPT(plain);
+  SAVE_OPT(sasl);
+  SAVE_OPT(anon);
+#undef SAVE_OPT
   
   eet_close(ef);
 }
 
 Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   Widget_Data *wd;
-  Evas_Object *frame, *fbox, *box, *buttons, *close, *scroll;
+  Evas_Object *frame, *fbox, *box, *buttons, *close, *scroll, *tab;
   
   wd = malloc(sizeof(Widget_Data));
   
@@ -184,11 +205,42 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_smart_callback_add(wd->server_enable, "changed", _server_enable_hook, wd);
   WRAP_FIELD2(_("Server"), wd->server_enable, wd->server);
   
+  /* Table for Checkboxes */
+  tab = elm_table_add(parent);
+  elm_table_homogenous_set(tab, 1);
+  evas_object_size_hint_weight_set(tab, 1.0, 1.0);
+  evas_object_size_hint_align_set(tab, -1.0, -1.0);
+  elm_box_pack_end(box, tab);
+  evas_object_show(tab);
+  
+  /* Use TLS */
   wd->usetls = elm_check_add(parent);
   elm_check_label_set(wd->usetls, _("Use TLS"));
-  elm_box_pack_end(box, wd->usetls);
+  evas_object_size_hint_align_set(wd->usetls, 0.0, 0.0);
+  elm_table_pack(tab, wd->usetls, 0, 0, 1, 1);
   evas_object_show(wd->usetls);
   
+  /* Use PLAIN */
+  wd->plain = elm_check_add(parent);
+  elm_check_label_set(wd->plain, _("Use PLAIN"));
+  evas_object_size_hint_align_set(wd->plain, 0.0, 0.0);
+  elm_table_pack(tab, wd->plain, 1, 0, 1, 1);
+  evas_object_show(wd->plain);
+  
+  /* Use SASL */
+  wd->sasl = elm_check_add(parent);
+  elm_check_label_set(wd->sasl, _("Use SASL"));
+  evas_object_size_hint_align_set(wd->sasl, 0.0, 0.0);
+  elm_table_pack(tab, wd->sasl, 0, 1, 1, 1);
+  evas_object_show(wd->sasl);
+  
+  /* SASL Anonymous */
+  wd->anon = elm_check_add(parent);
+  elm_check_label_set(wd->anon, _("Anonymous"));
+  evas_object_size_hint_align_set(wd->anon, 0.0, 0.0);
+  elm_table_pack(tab, wd->anon, 1, 1, 1, 1);
+  evas_object_show(wd->anon);
+  evas_object_smart_callback_add(wd->sasl, "changed", _sasl_enable_hook, wd);
   
   fbox = elm_box_add(parent);
   evas_object_size_hint_weight_set(fbox, 1.0, 1.0);
@@ -234,24 +286,30 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     char *val=NULL;
     ef = eet_open(EET_CONF_FILE, EET_FILE_MODE_READ);
     
-#define SET_VAL(name)						\
-    if(ef)val=eet_read(ef, #name, &size);			\
-    elm_entry_entry_set(wd->name, val?val:default_ ## name);
+#define LOAD_OPT(name)						\
+    val=ef?eet_read(ef, #name, &size):NULL;			\
+    elm_entry_entry_set(wd->name, val?val:default_ ## name);	\
+    if(val)free(val);
     
-    SET_VAL(jidres);
-    SET_VAL(passwd);
-    SET_VAL(server);
-#undef SET_VAL
+    LOAD_OPT(jidres);
+    LOAD_OPT(passwd);
+    LOAD_OPT(server);
+#undef LOAD_OPT
     
-    val=eet_read(ef, "usetls", &size);
-    elm_check_state_set(wd->usetls, val?*val:default_usetls);
+#define LOAD_OPT(name)						\
+    val=ef?eet_read(ef, #name, &size):NULL;			\
+    elm_check_state_set(wd->name, val?*val:default_ ## name);	\
+    if(val)free(val);
     
-    val=eet_read(ef, "server_enable", &size);
-    {
-      char st=val?*val:default_server_enable;
-      elm_check_state_set(wd->server_enable, st);
-      elm_object_disabled_set(wd->server, !st);
-    }
+    LOAD_OPT(server_enable);
+    LOAD_OPT(usetls);
+    LOAD_OPT(plain);
+    LOAD_OPT(sasl);
+    LOAD_OPT(anon);
+#undef LOAD_OPT
+    
+    _server_enable_hook(wd, NULL, NULL);
+    _sasl_enable_hook(wd, NULL, NULL);
     
     if(ef)eet_close(ef);
   }
@@ -262,7 +320,8 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
 int elm_jabber_config_load(Jabber_Session *sess){
   char *jidres=NULL, *passwd=NULL, *server=NULL;
   int port=0;
-  char usetls=default_usetls, sasl=0, plain=0;
+  //char usetls=default_usetls, sasl=default_sasl, plain=default_plain, anon=default_anon;
+  Jabber_Option opts=0;
   
   Eet_File *ef;
   int size;
@@ -287,12 +346,24 @@ int elm_jabber_config_load(Jabber_Session *sess){
   if(val){
     passwd=val;
   }
-  // Use TLS
-  val=eet_read(ef, "usetls", &size);
-  if(val){
-    usetls=*val;
-    free(val);
+#define READ_OPT(name, cons)				\
+  val=eet_read(ef, #name, &size);			\
+  if(val){						\
+    if(*val)opts|=JABBER_ ## cons;			\
+    free(val);						\
+  }else{						\
+    if(default_ ## name)opts|=JABBER_ ## cons;		\
   }
+  
+  READ_OPT(usetls, USETLS);
+  READ_OPT(plain, PLAIN);
+  READ_OPT(sasl, SASL);
+  READ_OPT(anon, ANON);
+#undef READ_OPT
+  
+  // For debugging
+  opts|=JABBER_LOG;
+
   // Server / Port
   val=eet_read(ef, "server_enable", &size);
   se=*val;
@@ -316,9 +387,7 @@ int elm_jabber_config_load(Jabber_Session *sess){
   {
     Jabber_State state=jabber_state(sess);
     jabber_disconnect(sess);
-    jabber_config(sess, jidres, passwd, server, port,
-		  (usetls?JABBER_USETLS:0)|(JABBER_LOG)|
-		  (plain?JABBER_PLAIN:0)|(sasl?JABBER_SASL:0));
+    jabber_config(sess, jidres, passwd, server, port, opts);
     if(state!=JABBER_DISCONNECTED)jabber_connect(sess);
   }
   

@@ -30,9 +30,10 @@ typedef struct _Jabber_Session Jabber_Session;
 typedef enum _Jabber_Option Jabber_Option;
 enum _Jabber_Option {
   JABBER_USETLS = (1<<0),
-  JABBER_SASL = (1<<1),
-  JABBER_PLAIN = (1<<2),
-  JABBER_LOG = (1<<3)
+  JABBER_PLAIN = (1<<1),
+  JABBER_SASL = (1<<2),
+  JABBER_ANON = (1<<3),
+  JABBER_LOG = (1<<4)
 };
 
 typedef enum _Jabber_State Jabber_State;
@@ -65,5 +66,6 @@ void jabber_error_callback_set(Jabber_Session *sess, Jabber_Callback func, const
 int jabber_connect(Jabber_Session *sess);
 int jabber_disconnect(Jabber_Session *sess);
 Jabber_State jabber_state(Jabber_Session *sess);
+int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc);
 
 #endif
