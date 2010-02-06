@@ -58,6 +58,7 @@ enum _Jabber_Show {
 
 typedef void(*Jabber_Callback)(void *data, Jabber_Session *sess, const void *event_info);
 
+char jabber_hastls();
 Jabber_Session *jabber_new();
 void jabber_del(Jabber_Session *sess);
 int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, const char *server, int port, Jabber_Option opts);

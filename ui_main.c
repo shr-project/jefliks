@@ -59,6 +59,9 @@ static void
 _config_del(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
   Widget_Data *wd=data;
+  
+  printf(">>> Show Main Window! <<<\n");
+  
   evas_object_show(wd->box);
   elm_jabber_config_load(wd->jabber);
 }
@@ -130,7 +133,7 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
       jabber_disconnect(wd->jabber);
     }
   }else{
-    jabber_status_set(wd->jabber, wd->selected_status, _("I'm Jefliks!"));
+    jabber_status_set(wd->jabber, wd->selected_status, _("I'm Jefliks! (Experimental Jabber Client for Handheld devices, based on Enlightenment) http://sourceforge.net/projects/jefliks/"));
     if(jabber_state(wd->jabber)==JABBER_CONNECTED){
       elm_hoversel_label_set(wd->status, title_by_status(wd->selected_status));
     }else{
@@ -142,8 +145,6 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
 static void
 _state_change_hook(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
   const char *title=_("Undefined..");
-  
-  printf(">>>> state callback\n");
   
   switch(state){
   case JABBER_DISCONNECTED:

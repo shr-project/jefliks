@@ -57,7 +57,6 @@ struct _Jabber_Session {
   int features;
   char authorized;
   int counter;
-  char job_done;
   /* coonnection thread */
   pthread_t thread;
   /* precious roster we'll deal with */
@@ -165,6 +164,7 @@ set_presence(Jabber_Session *sess, char *to, int show, char *desc){
 
 static int
 on_roster (Jabber_Session *sess, ikspak *pak) {
+  
   sess->roster = iks_first_tag(pak->x); // extract query from iq
   if(sess->roster_cb.func){
     sess->roster_cb.func((void*)sess->roster_cb.data, sess, (void*)sess->roster);
@@ -191,6 +191,10 @@ int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc){
   return 0;
 }
 
+char jabber_hastls(){
+  return iks_has_tls();
+}
+
 /* connection time outs if nothing comes for this much seconds */
 static const int opt_timeout = 30;
 
@@ -200,15 +204,15 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
   
   switch (type) {
   case IKS_NODE_START:
-    if (sess->option & JABBER_USETLS && !iks_is_secure (sess->prs)) {
+    if ((sess->option&JABBER_USETLS) && !iks_is_secure (sess->prs)) {
       iks_start_tls (sess->prs);
       break;
     }
-    if (!(sess->option & JABBER_SASL)) {
+    if (!(sess->option&JABBER_SASL)) {
       iks *x;
       char *sid = NULL;
       
-      if (!(sess->option & JABBER_PLAIN)) sid = iks_find_attrib (node, "id");
+      if (!(sess->option&JABBER_PLAIN)) sid = iks_find_attrib (node, "id");
       x = iks_make_auth (sess->acc, sess->passwd, sid);
       iks_insert_attrib (x, "id", "auth");
       iks_send (sess->prs, x);
@@ -220,7 +224,7 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
     if (strcmp ("stream:features", iks_name (node)) == 0) {
       sess->features = iks_stream_features (node);
       if (sess->option & JABBER_SASL) {
-	if (sess->option & JABBER_USETLS && !iks_is_secure (sess->prs)) break;
+	if ((sess->option & JABBER_USETLS) && !iks_is_secure (sess->prs)) break;
 	if (sess->authorized) {
 	  iks *t;
 	  if (sess->features & IKS_STREAM_BIND) {
@@ -251,7 +255,7 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
       
       pak = iks_packet (node);
       iks_filter_packet (sess->filter, pak);
-      if (sess->job_done == 1) return IKS_HOOK;
+      if (sess->roster) return IKS_HOOK;
     }
     break;
     
@@ -309,6 +313,7 @@ Jabber_Session *jabber_new(){
   memset(sess, 0, sizeof(Jabber_Session));
   
   sess->prs = iks_stream_new(IKS_NS_CLIENT, sess, (iksStreamHook *)on_stream);
+  setup_filter(sess);
   
   return sess;
 }
@@ -332,7 +337,7 @@ void jabber_del(Jabber_Session *sess){
 #endif
 
 #ifndef default_tlsport
-#define default_tlsport 5223
+#define default_tlsport 5222
 #endif
 
 int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, const char *server, int port, Jabber_Option opts){
@@ -349,22 +354,26 @@ int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, 
     sess->acc = iks_id_new(iks_parser_stack(sess->prs), tmp);
     iks_free(tmp);
   }
-  if(passwd)sess->passwd=strdup(passwd);
+  if(passwd){
+    free(sess->passwd);
+    sess->passwd=strdup(passwd);
+  }
   
-  if(server)sess->server=strdup(server);
+  if(server){
+    free(sess->server);
+    sess->server=strdup(server);
+  }
   if(port)sess->port=port;
   
   // Set port automatically
   if(!sess->port)sess->port=(opts & JABBER_USETLS)?default_tlsport:default_port;
   // Try get server from JID
   if(!sess->server || !strlen(sess->server)){
-    if(sess->server)free(sess->server);
+    free(sess->server);
     sess->server=strdup(sess->acc->server);
   }
-
-  sess->priority=4;
   
-  setup_filter(sess);
+  sess->priority=4;
   
   return 1;
 }
@@ -414,7 +423,12 @@ _connect_thread(void *arg){
     }
     e = iks_recv (sess->prs, 1);
     if (IKS_HOOK == e){
-      return NULL;
+      continue;
+    }
+    if (IKS_NODE_ERROR == e){
+      set_error(_("Node Error"), e);
+      continue;
+      //return NULL;
     }
     if (IKS_NET_TLSFAIL == e){
       set_error(_("TLS handshake failed"));
@@ -422,11 +436,11 @@ _connect_thread(void *arg){
       return NULL;
     }
     if (IKS_OK != e){
-      set_error(_("IO Error"));
+      set_error(_("IO Error %d"), e);
       set_state(JABBER_DISCONNECTED);
       return NULL;
     }
-    //sess->counter--;
+    sess->counter--;
     if (sess->counter == 0){
       set_error(_("Network timeout"));
       set_state(JABBER_DISCONNECTED);
@@ -450,6 +464,7 @@ int jabber_connect(Jabber_Session *sess){
 int jabber_disconnect(Jabber_Session *sess){
   if(sess->state!=JABBER_DISCONNECTED){
     set_state(JABBER_DISCONNECTED);
+    sess->roster=NULL;
     sess->authorized=0;
     return 1;
   }

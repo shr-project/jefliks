@@ -311,6 +311,11 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     _server_enable_hook(wd, NULL, NULL);
     _sasl_enable_hook(wd, NULL, NULL);
     
+    if(!jabber_hastls()){
+      elm_check_state_set(wd->usetls, 0);
+      elm_object_disabled_set(wd->usetls, 1);
+    }
+    
     if(ef)eet_close(ef);
   }
   
