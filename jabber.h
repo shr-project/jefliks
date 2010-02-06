@@ -68,4 +68,15 @@ int jabber_disconnect(Jabber_Session *sess);
 Jabber_State jabber_state(Jabber_Session *sess);
 int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc);
 
+/* Roster handling */
+
+typedef enum _Jabber_Subscript Jabber_Subscript;
+enum _Jabber_Subscript {
+  JABBER_SUBSCRIPT_TO = 0x1,
+  JABBER_SUBSCRIPT_FROM = 0x2,
+  JABBER_SUBSCRIPT_BOTH = 0x3
+};
+
+void jabber_roster_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data);
+
 #endif

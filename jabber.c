@@ -67,6 +67,7 @@ struct _Jabber_Session {
   /* callbacks */
   Jabber_Callback_Object error_cb;
   Jabber_Callback_Object state_cb;
+  Jabber_Callback_Object roster_cb;
   char state;
   /* presence */
   int priority;
@@ -160,14 +161,22 @@ set_presence(Jabber_Session *sess, char *to, int show, char *desc){
   iks_delete(priority);
 }
 
+/* Roster Handling {{{ */
+
 static int
 on_roster (Jabber_Session *sess, ikspak *pak) {
-  sess->roster = pak->x;
+  sess->roster = iks_first_tag(pak->x); // extract query from iq
+  if(sess->roster_cb.func){
+    sess->roster_cb.func((void*)sess->roster_cb.data, sess, (void*)sess->roster);
+  }
   
   set_presence(sess, NULL, sess->show, sess->show_desc);
+  set_state(JABBER_CONNECTED);
   
   return IKS_FILTER_EAT;
 }
+
+/* Roster Handling }}} */
 
 int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc){
   if(show!=JABBER_UNDEFINED){
@@ -360,15 +369,19 @@ int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, 
   return 1;
 }
 
-void jabber_error_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data){
-  sess->error_cb.func=func;
-  sess->error_cb.data=data;
-}
+#define REG_CB(name)							\
+  void jabber_ ## name ## _callback_set(Jabber_Session *sess,		\
+					Jabber_Callback func,		\
+					const void *data){		\
+    sess->name ## _cb.func=func;					\
+    sess->name ## _cb.data=data;					\
+  }
 
-void jabber_state_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data){
-  sess->state_cb.func=func;
-  sess->state_cb.data=data;
-}
+REG_CB(error);
+REG_CB(state);
+REG_CB(roster);
+
+#undef REG_CB
 
 static void *
 _connect_thread(void *arg){
@@ -395,10 +408,13 @@ _connect_thread(void *arg){
   
   sess->counter = opt_timeout;
   while (1) {
+    if(sess->state==JABBER_DISCONNECTED){
+      iks_disconnect(sess->prs);
+      return NULL;
+    }
     e = iks_recv (sess->prs, 1);
     if (IKS_HOOK == e){
-      set_state(JABBER_CONNECTED);
-      continue;
+      return NULL;
     }
     if (IKS_NET_TLSFAIL == e){
       set_error(_("TLS handshake failed"));
@@ -410,7 +426,7 @@ _connect_thread(void *arg){
       set_state(JABBER_DISCONNECTED);
       return NULL;
     }
-    sess->counter--;
+    //sess->counter--;
     if (sess->counter == 0){
       set_error(_("Network timeout"));
       set_state(JABBER_DISCONNECTED);
@@ -434,7 +450,6 @@ int jabber_connect(Jabber_Session *sess){
 int jabber_disconnect(Jabber_Session *sess){
   if(sess->state!=JABBER_DISCONNECTED){
     set_state(JABBER_DISCONNECTED);
-    iks_disconnect(sess->prs);
     sess->authorized=0;
     return 1;
   }

@@ -101,7 +101,7 @@ struct {
 static Jabber_Show status_by_title(const char *title){
   int i;
   for(i=0; status_list[i].title; i++){
-    if(strcmp(status_list[i].title, title)){
+    if(!strcmp(status_list[i].title, title)){
       return status_list[i].status;
     }
   }
@@ -132,7 +132,7 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
   }else{
     jabber_status_set(wd->jabber, wd->selected_status, _("I'm Jefliks!"));
     if(jabber_state(wd->jabber)==JABBER_CONNECTED){
-      // send presense only
+      elm_hoversel_label_set(wd->status, title_by_status(wd->selected_status));
     }else{
       jabber_connect(wd->jabber);
     }
@@ -142,6 +142,8 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
 static void
 _state_change_hook(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
   const char *title=_("Undefined..");
+  
+  printf(">>>> state callback\n");
   
   switch(state){
   case JABBER_DISCONNECTED:
@@ -249,6 +251,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   /* Roster */
   roster = elm_jabber_roster_add(parent);
   wd->roster=roster;
+  elm_jabber_roster_register(roster, wd->jabber);
   evas_object_size_hint_weight_set(roster, 1.0, 1.0);
   evas_object_size_hint_align_set(roster, -1.0, -1.0);
   elm_box_pack_end(box, roster);
