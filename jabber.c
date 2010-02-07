@@ -59,8 +59,6 @@ struct _Jabber_Session {
   int counter;
   /* coonnection thread */
   pthread_t thread;
-  /* precious roster we'll deal with */
-  iks *roster;
   /* out packet filter */
   iksfilter *filter;
   /* callbacks */
@@ -131,11 +129,10 @@ set_presence(Jabber_Session *sess, char *to, int show, char *desc){
   const char *from = sess->acc->full;
   int res = 0;
   iks *presence = iks_make_pres(show, desc?desc:"");
-  iks *cnode = iks_new("c");
   iks *priority = iks_new("priority");
   char priority_string[10];
   
-  if(sess && presence && cnode && priority){
+  if(sess && presence && priority){
     if(to){
       iks_insert_attrib(presence, "to", to);
     }
@@ -145,17 +142,11 @@ set_presence(Jabber_Session *sess, char *to, int show, char *desc){
     snprintf(priority_string, sizeof(priority_string), "%d", sess->priority);
     iks_insert_cdata(priority, priority_string, strlen(priority_string));
     iks_insert_node(presence, priority);
-    iks_insert_attrib(cnode, "node", "http://www.asterisk.org/xmpp/client/caps");
-    iks_insert_attrib(cnode, "ver", NAME);
-    iks_insert_attrib(cnode, "ext", VERSION);
-    iks_insert_attrib(cnode, "xmlns", "http://jabber.org/protocol/caps");
-    iks_insert_node(presence, cnode);
     res = iks_send(sess->prs, presence);
   } else {
     set_error("set_presence: Out of memory.\n");
   }
   
-  iks_delete(cnode);
   iks_delete(presence);
   iks_delete(priority);
 }
@@ -164,15 +155,21 @@ set_presence(Jabber_Session *sess, char *to, int show, char *desc){
 
 static int
 on_roster (Jabber_Session *sess, ikspak *pak) {
-  
-  sess->roster = iks_first_tag(pak->x); // extract query from iq
   if(sess->roster_cb.func){
-    sess->roster_cb.func((void*)sess->roster_cb.data, sess, (void*)sess->roster);
+    sess->roster_cb.func((void*)sess->roster_cb.data, sess, (void*)pak);
   }
   
-  set_presence(sess, NULL, sess->show, sess->show_desc);
   set_state(JABBER_CONNECTED);
+  set_presence(sess, NULL, sess->show, sess->show_desc);
   
+  return IKS_FILTER_EAT;
+}
+
+static int
+on_presence (Jabber_Session *sess, ikspak *pak) {
+  if(sess->roster_cb.func){
+    sess->roster_cb.func((void*)sess->roster_cb.data, sess, (void*)pak);
+  }
   return IKS_FILTER_EAT;
 }
 
@@ -201,6 +198,8 @@ static const int opt_timeout = 30;
 static int
 on_stream (Jabber_Session *sess, int type, iks *node) {
   sess->counter = opt_timeout;
+  
+  //printf(">>> on_stream: type=%d, IKS_NODE_START=%d IKS_NODE_NORMAL=%d, IKS_NODE_STOP=%d, IKS_NODE_ERROR=%d <<<\n", type, IKS_NODE_START, IKS_NODE_NORMAL, IKS_NODE_STOP, IKS_NODE_ERROR);
   
   switch (type) {
   case IKS_NODE_START:
@@ -255,7 +254,12 @@ on_stream (Jabber_Session *sess, int type, iks *node) {
       
       pak = iks_packet (node);
       iks_filter_packet (sess->filter, pak);
-      if (sess->roster) return IKS_HOOK;
+      /*
+      if (sess->state==JABBER_CONNECTED){
+	if (node) iks_delete (node);
+	return IKS_HOOK;
+      }
+      */
     }
     break;
     
@@ -303,6 +307,9 @@ setup_filter (Jabber_Session *sess) {
 		       IKS_RULE_TYPE, IKS_PAK_IQ,
 		       IKS_RULE_SUBTYPE, IKS_TYPE_RESULT,
 		       IKS_RULE_ID, "roster",
+		       IKS_RULE_DONE);
+  iks_filter_add_rule (sess->filter, (iksFilterHook *)on_presence, sess,
+		       IKS_RULE_TYPE, IKS_PAK_PRESENCE,
 		       IKS_RULE_DONE);
 }
 
@@ -422,13 +429,13 @@ _connect_thread(void *arg){
       return NULL;
     }
     e = iks_recv (sess->prs, 1);
+    //printf(">>> iks_recv code = %d; IKS_OK = %d, IKS_HOOK = %d, IKS_BADXML = %d, IKS_NET_TLSFAIL = %d \n", e, IKS_OK, IKS_HOOK, IKS_BADXML, IKS_NET_TLSFAIL);
     if (IKS_HOOK == e){
       continue;
     }
     if (IKS_NODE_ERROR == e){
       set_error(_("Node Error"), e);
       continue;
-      //return NULL;
     }
     if (IKS_NET_TLSFAIL == e){
       set_error(_("TLS handshake failed"));
@@ -439,6 +446,8 @@ _connect_thread(void *arg){
       set_error(_("IO Error %d"), e);
       set_state(JABBER_DISCONNECTED);
       return NULL;
+    }else if(sess->state==JABBER_CONNECTED){
+      continue;
     }
     sess->counter--;
     if (sess->counter == 0){
@@ -464,7 +473,6 @@ int jabber_connect(Jabber_Session *sess){
 int jabber_disconnect(Jabber_Session *sess){
   if(sess->state!=JABBER_DISCONNECTED){
     set_state(JABBER_DISCONNECTED);
-    sess->roster=NULL;
     sess->authorized=0;
     return 1;
   }

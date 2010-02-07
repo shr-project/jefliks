@@ -47,6 +47,7 @@ typedef enum _Jabber_Show Jabber_Show;
 enum _Jabber_Show {
   JABBER_OFFLINE = 0x0, /* Disconnected */
   JABBER_ONLINE = 0x1,  /* Connected. Status: managed automatically */
+  /* Jabber Show */
   JABBER_CHAT =0x2,     /* Connected. Status: chat */
   JABBER_AWAY = 0x3,    /* Connected. Status: away */
   JABBER_XA = 0x4,      /* Connected. Status: extended away */
