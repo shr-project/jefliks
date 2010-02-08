@@ -65,6 +65,7 @@ struct _Jabber_Session {
   Jabber_Callback_Object error_cb;
   Jabber_Callback_Object state_cb;
   Jabber_Callback_Object roster_cb;
+  Jabber_Callback_Object chat_cb;
   char state;
   /* presence */
   int priority;
@@ -391,6 +392,7 @@ int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, 
 REG_CB(error);
 REG_CB(state);
 REG_CB(roster);
+REG_CB(chat);
 
 #undef REG_CB
 

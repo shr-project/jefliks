@@ -318,6 +318,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   elm_win_resize_object_add(parent, chat);
   evas_object_size_hint_weight_set(chat, 1.0, 1.0);
   evas_object_event_callback_add(chat, EVAS_CALLBACK_HIDE, _root_show, wd);
+  evas_object_hide(chat);
   
   return box;
 }

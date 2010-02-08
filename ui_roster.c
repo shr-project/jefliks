@@ -434,7 +434,7 @@ static Roster_Item_Res *item_res_add(Roster_Item_Jid *jid_item, const char *res)
   Roster_Item_Res *item=malloc(sizeof(Roster_Item_Res));
   
   item->type=ROSTER_ITEM_RES;
-  item->wd=NULL;
+  item->wd=jid_item->wd;
   item->it=NULL;
   item->desc=NULL;
   
@@ -524,7 +524,7 @@ static Roster_Item_Jid *item_jid_add(Widget_Data *wd, const char *jid){
   Roster_Item_Jid *item=malloc(sizeof(Roster_Item_Jid));
   
   item->type=ROSTER_ITEM_JID;
-  item->wd=NULL;
+  item->wd=wd;
   item->it=NULL;
   item->res=NULL;
   item->exp=0;
@@ -669,7 +669,7 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   wd = malloc(sizeof(Widget_Data));
   
   wd->jids=NULL;
-  
+  wd->selected=NULL;
   wd->list = elm_genlist_add(parent);
   evas_object_event_callback_add(wd->list, EVAS_CALLBACK_FREE, _del_hook, wd);
   elm_genlist_compress_mode_set(wd->list, 1);

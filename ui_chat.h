@@ -24,8 +24,7 @@
 #define __UI_CHAR_H__
 
 Evas_Object *elm_jabber_chat_add(Evas_Object *parent);
-void elm_jabber_chat_register(Evas_Object *parent, Jabber_Session *jabber);
-void elm_jabber_chat_enter(Evas_Object *parent, const char *jid);
-//Evas_Object *elm_jabber_chat_leave(Evas_Object *parent);
+void elm_jabber_chat_register(Evas_Object *chat, Jabber_Session *jabber);
+void elm_jabber_chat_enter(Evas_Object *chat, const char *jid);
 
 #endif
