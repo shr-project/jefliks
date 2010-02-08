@@ -1,0 +1,34 @@
+images {
+ image: "status.png" COMP;
+}
+
+#define ICON(n, x)						\
+  group { name: n;						\
+  min: 32 32;							\
+  max: 64 64;							\
+    parts {							\
+      part { name: "status";					\
+      type: IMAGE;						\
+	description { state: "default" 0;			\
+	aspect: 1 1;						\
+	aspect_preference: BOTH;				\
+	  rel1 { relative: 0.0 0.0; offset:  0  0; }		\
+	  rel2 { relative: 1.0 1.0; offset: -1 -1; }		\
+	  image { normal: "status.png"; }			\
+	  fill {						\
+	    origin { relative: x 0; }				\
+	    size { relative: 6 1; }				\
+	  }							\
+	}							\
+      }								\
+    }								\
+  }
+
+collections {
+  ICON("status/unavailable", 0);
+  ICON("status/available", -1);
+  ICON("status/chat", -2);
+  ICON("status/away", -3);
+  ICON("status/xa", -4);
+  ICON("status/dnd", -5);
+}
