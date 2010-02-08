@@ -21,7 +21,6 @@
  */
 
 #include<Elementary.h>
-#include"elm_genlist_ext.h"
 
 #include"jabber.h"
 
@@ -32,6 +31,7 @@ typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
   Evas_Object *list;
   Jabber_Session *jabber;
+  Eina_List *jids;
 };
 
 static void
@@ -69,34 +69,50 @@ typedef void (*GenlistItemSelectFunc) (void *data, Evas_Object *obj, void *event
 
 typedef enum _Roster_Item_Type Roster_Item_Type;
 enum _Roster_Item_Type{
-  ROSTER_ITEM_ROOT = 0,
-  ROSTER_ITEM_GRP,
+  ROSTER_ITEM_GRP = 1,
   ROSTER_ITEM_JID,
   ROSTER_ITEM_RES
 };
 
+typedef struct _Roster_Item Roster_Item;
 typedef struct _Roster_Item_Grp Roster_Item_Grp;
 typedef struct _Roster_Item_Jid Roster_Item_Jid;
 typedef struct _Roster_Item_Res Roster_Item_Res;
 
+struct _Roster_Item{
+  // Common fields
+  Roster_Item_Type type; // type of entry
+  Widget_Data *wd; // Widget Data
+  Elm_Genlist_Item *it; // Item (if visible)
+};
+
 struct _Roster_Item_Grp{
   Roster_Item_Type type;
   Widget_Data *wd;
+  Elm_Genlist_Item *it;
+  // Specific fields
+  char exp;
   char *grp;
+  Eina_List *jid;
 };
 
 struct _Roster_Item_Jid{
   Roster_Item_Type type;
   Widget_Data *wd;
+  Elm_Genlist_Item *it;
+  // Specific fields
+  char exp;
   char *jid;
   Jabber_Subscript sub;
-  Roster_Item_Res *res;
   Roster_Item_Grp *par;
+  Eina_List *res;
 };
 
 struct _Roster_Item_Res{
   Roster_Item_Type type;
   Widget_Data *wd;
+  Elm_Genlist_Item *it;
+  // Specific fields
   char *res;
   int pri;
   char show;
@@ -107,8 +123,8 @@ struct _Roster_Item_Res{
 /* Class: Item_Grp {{{ */
 
 static void _item_grp_del(Roster_Item_Grp *item, Evas_Object *obj) {
-  free(item->grp);
-  free(item);
+  //free(item->grp);
+  //free(item);
 }
 
 static char *_item_grp_label_get(const Roster_Item_Grp *item, Evas_Object *obj, const char *part) {
@@ -146,8 +162,8 @@ static const Elm_Genlist_Item_Class _item_grp_class={
 /* Class: Item_Jid {{{ */
 
 static void _item_jid_del(Roster_Item_Jid *item, Evas_Object *obj) {
-  free(item->jid);
-  free(item);
+  //free(item->jid);
+  //free(item);
 }
 
 static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
@@ -157,9 +173,9 @@ static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, 
     snprintf(buf, sizeof(buf), "%s (%s-%s)", item->jid, item->sub&JABBER_SUBSCRIPT_TO?"<":" ", item->sub&JABBER_SUBSCRIPT_FROM?">":" ");
   }
   if(!strcmp(part, "elm.text.sub")){
-    if(item->res){
-      int start=strlen(buf)+1;
-      snprintf(buf+start, sizeof(buf)-start, "%s [%d]", item->res->res, item->res->pri);
+    if(item->res && item->res->data){
+      const Roster_Item_Res *res_item=item->res->data;
+      snprintf(buf, sizeof(buf), "%s [%d]", res_item->res, res_item->pri);
     }else{
       buf[0]='\0';
     }
@@ -170,8 +186,11 @@ static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, 
 
 static Evas_Object *_item_jid_icon_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
   if(!strcmp(part, "elm.swallow.icon")){
-    Jabber_Show show=JABBER_UNDEFINED;
-    if(item->res)show=item->res->show;
+    Jabber_Show show=JABBER_UNAVAILABLE;
+    if(item->res && item->res->data){
+      const Roster_Item_Res *res_item=item->res->data;
+      show=res_item->show;
+    }
     const char *name=icon_by_show(show);
     
     if(name){
@@ -202,6 +221,7 @@ static const Elm_Genlist_Item_Class _item_jid_class={
   }
 };
 
+/*
 static Elm_Genlist_Item *item_jid_get(Widget_Data *wd, const char *jid){
   Elm_Genlist_Item *it;
   
@@ -230,12 +250,6 @@ static Elm_Genlist_Item *item_jid_set(Widget_Data *wd, const char *jid, const ch
     item->sub=0;
   }
   
-  if(sub){
-    if(!strcmp(sub, "to"))item->sub=JABBER_SUBSCRIPT_TO;
-    if(!strcmp(sub, "from"))item->sub=JABBER_SUBSCRIPT_FROM;
-    if(!strcmp(sub, "both"))item->sub=JABBER_SUBSCRIPT_BOTH;
-  }
-  
   if(it){
     elm_genlist_item_update(it);
   }else{
@@ -245,15 +259,16 @@ static Elm_Genlist_Item *item_jid_set(Widget_Data *wd, const char *jid, const ch
   
   return it;
 }
+*/
 
 /* Class: Item_Jid }}} */
 
 /* Class: Item_Res {{{ */
 
 static void _item_res_del(Roster_Item_Res *item, Evas_Object *obj) {
-  free(item->res);
-  free(item->desc);
-  free(item);
+  //free(item->res);
+  //free(item->desc);
+  //free(item);
 }
 
 static char *_item_res_label_get(const Roster_Item_Res *item, Evas_Object *obj, const char *part) {
@@ -300,6 +315,7 @@ static const Elm_Genlist_Item_Class _item_res_class={
   }
 };
 
+/*
 static Elm_Genlist_Item *item_res_get(Widget_Data *wd, const char *jid, const char *res){
   Elm_Genlist_Item *it;//=item_jid_get(wd, jid);
   
@@ -377,8 +393,260 @@ static Elm_Genlist_Item *item_res_set(Widget_Data *wd, const char* jid, const ch
   
   return it;
 }
+*/
 
 /* Class: Item_Res }}} */
+
+static Roster_Item_Jid *item_jid_fnd(Widget_Data *wd, const char* jid){
+  if(!wd || !jid) return NULL;
+  Eina_List *entry;
+  for(entry=wd->jids; entry; entry=entry->next){
+    Roster_Item_Jid *item=entry->data;
+    if(item && item->type==ROSTER_ITEM_JID && !strcmp(item->jid, jid)) return item;
+  }
+  return NULL;
+}
+
+static Roster_Item_Res *item_res_fnd(Roster_Item_Jid *jid_item, const char *res){
+  if(!jid_item || !res) return NULL;
+  Eina_List *entry;
+  for(entry=jid_item->res; entry; entry=entry->next){
+    Roster_Item_Res *item=entry->data;
+    if(item && item->type==ROSTER_ITEM_RES && !strcmp(item->res, res)) return item;
+  }
+  return NULL;
+}
+
+static Roster_Item_Res *item_res_add(Roster_Item_Jid *jid_item, const char *res){
+  if(!jid_item || !res) return NULL;
+  Roster_Item_Res *item=malloc(sizeof(Roster_Item_Res));
+  
+  item->type=ROSTER_ITEM_RES;
+  item->wd=NULL;
+  item->it=NULL;
+  item->desc=NULL;
+  
+  item->res=strdup(res);
+  item->par=jid_item;
+  
+  jid_item->res=eina_list_append(jid_item->res, item);
+  
+  return item;
+}
+
+static void item_res_del(Roster_Item_Jid *jid_item, Roster_Item_Res *res_item){
+  if(!jid_item || !res_item) return;
+  jid_item->res=eina_list_remove(jid_item->res, res_item); // remove from list
+  /* free data */
+  free(res_item->res);
+  free(res_item->desc);
+  free(res_item);
+}
+
+static void item_res_clr(Roster_Item_Jid *jid_item){
+  if(!jid_item || !jid_item->res) return;
+  Eina_List *entry;
+  for(entry=jid_item->res; entry; entry=jid_item->res){
+    Roster_Item_Res *res_item=entry->data;
+    item_res_del(jid_item, res_item);
+  }
+  jid_item->res=NULL;
+}
+
+static int item_res_cmp(const Roster_Item_Res *a, const Roster_Item_Res *b){
+  int s=b->pri-a->pri;
+  return s<0?-1:(s>0?1:0);
+}
+
+static void item_res_srt(Roster_Item_Jid *jid_item){
+  jid_item->res=eina_list_sort(jid_item->res, eina_list_count(jid_item->res), (Eina_Compare_Cb)item_res_cmp);
+}
+
+static void item_res_upd(Roster_Item_Res *res_item){
+  if(!res_item->it) return;
+  elm_genlist_item_update(res_item->it);
+}
+
+static void item_jid_upd(Roster_Item_Jid *jid_item){
+  if(!jid_item->it) return;
+  if(jid_item->res) {
+    elm_genlist_item_update(jid_item->it);
+    
+    if(jid_item->exp){
+      Eina_List *entry;
+      elm_genlist_item_subitems_clear(jid_item->it);
+      
+      for(entry=jid_item->res; entry; entry=entry->next){
+	Roster_Item_Res *res_item=entry->data;
+	if(!res_item || res_item->type!=ROSTER_ITEM_RES) continue;
+	res_item->it=elm_genlist_item_append(jid_item->wd->list, &_item_res_class, res_item, jid_item->it,
+					     ELM_GENLIST_ITEM_NONE, (GenlistItemSelectFunc)_item_res_sel, res_item);
+      }
+    }
+  }
+}
+
+static void item_res_set(Widget_Data *wd, const char* jid, const char *res, int pri, Jabber_Show show, const char *desc){
+  Roster_Item_Jid *jid_item=item_jid_fnd(wd, jid);
+  if(!jid_item) return;
+  Roster_Item_Res *res_item=item_res_fnd(jid_item, res);
+  // if unavailable delete resource end exit
+  if(show==JABBER_UNAVAILABLE){
+    if(res_item) item_res_del(jid_item, res_item);
+  }else{
+    // create if not exists
+    if(!res_item) res_item=item_res_add(jid_item, res);
+    if(!res_item) return;
+    // update data
+    res_item->pri=pri;
+    res_item->show=show;
+    free(res_item->desc);
+    res_item->desc=strdup(desc);
+  }
+  item_res_srt(jid_item);
+  item_jid_upd(jid_item);
+}
+
+static Roster_Item_Jid *item_jid_add(Widget_Data *wd, const char *jid){
+  if(!wd || !jid) return NULL;
+  Roster_Item_Jid *item=malloc(sizeof(Roster_Item_Jid));
+  
+  item->type=ROSTER_ITEM_JID;
+  item->wd=NULL;
+  item->it=NULL;
+  item->res=NULL;
+  item->exp=0;
+  
+  item->jid=strdup(jid);
+  item->par=NULL;
+  
+  wd->jids=eina_list_append(wd->jids, item);
+  
+  return item;
+}
+
+static void item_jid_del(Widget_Data *wd, Roster_Item_Jid *jid_item){
+  if(!wd || !jid_item) return;
+  wd->jids=eina_list_remove(wd->jids, jid_item); // remove from list
+  /* free data */
+  item_res_clr(jid_item);
+  free(jid_item->jid);
+  free(jid_item);
+}
+
+static void item_jid_clr(Widget_Data *wd){
+  if(!wd)return;
+  Eina_List *entry;
+  for(entry=wd->jids; entry; entry=wd->jids){
+    Roster_Item_Jid *jid_item=entry->data;
+    item_jid_del(wd, jid_item);
+  }
+  wd->jids=NULL;
+}
+
+static void list_upd(Widget_Data *wd){
+  if(!wd) return;
+  elm_genlist_clear(wd->list);
+  Eina_List *entry;
+  for(entry=wd->jids; entry; entry=entry->next){
+    Roster_Item_Jid *jid_item=entry->data;
+    jid_item->it=elm_genlist_item_append(wd->list, &_item_jid_class, jid_item, NULL,
+					 ELM_GENLIST_ITEM_SUBITEMS,
+					 (GenlistItemSelectFunc)_item_jid_sel, jid_item);
+  }
+}
+
+static void item_jid_set(Widget_Data *wd, const char *jid, Jabber_Subscript sub){
+  Roster_Item_Jid *jid_item=item_jid_fnd(wd, jid);
+  if(!jid_item) jid_item=item_jid_add(wd, jid);
+  
+  jid_item->wd=wd;
+  jid_item->sub=sub;
+  
+  list_upd(wd);  
+}
+
+static Eina_Bool item_jid_exp_req(const Roster_Item_Jid *item){
+  return item->res!=NULL;
+}
+
+static Eina_Bool item_jid_con_req(const Roster_Item_Jid *item){
+  return 0;
+}
+
+static void item_jid_exp(Roster_Item_Jid *item){
+  item->exp=1;
+  item_jid_upd(item);
+}
+
+static void item_jid_con(Roster_Item_Jid *item){
+  item->exp=0;
+  item_jid_upd(item);
+}
+
+static Eina_Bool item_grp_exp_req(const Roster_Item_Grp *item){
+  return item->jid!=NULL;
+}
+
+static Eina_Bool item_grp_con_req(const Roster_Item_Grp *item){
+  return 0;
+}
+
+static void item_grp_exp(Roster_Item_Grp *item){
+  item->exp=1;
+}
+
+static void item_grp_con(Roster_Item_Grp *item){
+  item->exp=0;
+}
+
+
+static void
+_exp_end(void *data, Evas_Object *obj, void *event_info) {
+  Elm_Genlist_Item *it = event_info;
+  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  switch(item->type){
+  case ROSTER_ITEM_GRP: item_grp_exp((Roster_Item_Grp *)item); break;
+  case ROSTER_ITEM_JID: item_jid_exp((Roster_Item_Jid *)item); break;
+  case ROSTER_ITEM_RES: break;
+  }
+}
+static void
+_con_end(void *data, Evas_Object *obj, void *event_info) {
+  Elm_Genlist_Item *it = event_info;
+  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  switch(item->type){
+  case ROSTER_ITEM_GRP: item_grp_con((Roster_Item_Grp *)item); break;
+  case ROSTER_ITEM_JID: item_jid_con((Roster_Item_Jid *)item); break;
+  case ROSTER_ITEM_RES: break;
+  }
+  elm_genlist_item_subitems_clear(it);
+}
+
+static void
+_exp_req(void *data, Evas_Object *obj, void *event_info) {
+  Elm_Genlist_Item *it = event_info;
+  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  Eina_Bool st=1;
+  switch(item->type){
+  case ROSTER_ITEM_GRP: st=item_grp_exp_req((Roster_Item_Grp *)item); break;
+  case ROSTER_ITEM_JID: st=item_jid_exp_req((Roster_Item_Jid *)item); break;
+  case ROSTER_ITEM_RES: break;
+  }
+  elm_genlist_item_expanded_set(it, st);
+}
+static void
+_con_req(void *data, Evas_Object *obj, void *event_info) {
+  Elm_Genlist_Item *it = event_info;
+  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  Eina_Bool st=0;
+  switch(item->type){
+  case ROSTER_ITEM_GRP: st=item_grp_con_req((Roster_Item_Grp *)item); break;
+  case ROSTER_ITEM_JID: st=item_jid_con_req((Roster_Item_Jid *)item); break;
+  case ROSTER_ITEM_RES: break;
+  }
+  elm_genlist_item_expanded_set(it, st);
+}
 
 /* Roster Item }}} */
 
@@ -388,14 +656,26 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   
   wd = malloc(sizeof(Widget_Data));
   
+  wd->jids=NULL;
+  
   wd->list = elm_genlist_add(parent);
   evas_object_event_callback_add(wd->list, EVAS_CALLBACK_FREE, _del_hook, wd);
   elm_genlist_compress_mode_set(wd->list, 1);
-  elm_genlist_autoexpcon_mode_set(wd->list, 1);
-  
   evas_object_data_set(wd->list, "wd", wd);
   
+  evas_object_smart_callback_add(wd->list, "expand,request", _exp_req, NULL);
+  evas_object_smart_callback_add(wd->list, "contract,request", _con_req, NULL);
+  
+  evas_object_smart_callback_add(wd->list, "expanded", _exp_end, NULL);
+  evas_object_smart_callback_add(wd->list, "contracted", _con_end, NULL);
+  
   return wd->list;
+}
+
+void elm_jabber_roster_clear(Evas_Object *roster){
+  Widget_Data *wd=evas_object_data_get(roster, "wd");
+  elm_genlist_clear(wd->list);
+  item_jid_clr(wd);
 }
 
 #include<iksemel.h>
@@ -403,13 +683,19 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
 static void roster_reload(Widget_Data *wd, ikspak *pak){
   iks *entry;
   
-  elm_genlist_clear(wd->list);
+  item_jid_clr(wd);
   
   for(entry = iks_first_tag(iks_first_tag(pak->x)); entry; entry = iks_next_tag(entry)){
     char *tag=iks_name(entry);
     if(tag && !strcmp(tag, "item")){
-      char *jid=iks_find_attrib(entry, "jid"), *sub=iks_find_attrib(entry, "subscription");
+      char *jid=iks_find_attrib(entry, "jid"), *subscr=iks_find_attrib(entry, "subscription");
       if(jid){
+	Jabber_Subscript sub=JABBER_SUBSCRIPT_NONE;
+	if(subscr){
+	  if(!strcmp(subscr, "to"))sub=JABBER_SUBSCRIPT_TO;
+	  if(!strcmp(subscr, "from"))sub=JABBER_SUBSCRIPT_FROM;
+	  if(!strcmp(subscr, "both"))sub=JABBER_SUBSCRIPT_BOTH;
+	}
 	item_jid_set(wd, jid, sub);
       }
     }

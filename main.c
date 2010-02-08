@@ -60,7 +60,7 @@ int main(int argc, char **argv){
   /* Main */
   fm = elm_jabber_main(wn);
   elm_win_resize_object_add(wn, fm);
-  evas_object_size_hint_weight_set(wn, 1.0, 1.0);
+  evas_object_size_hint_weight_set(fm, 1.0, 1.0);
   evas_object_show(fm);
   
   /*
@@ -73,6 +73,8 @@ int main(int argc, char **argv){
   
   //elm_pager_content_promote(pc, rl);
   
+  evas_object_size_hint_weight_set(wn, 1.0, 1.0);
+  evas_object_resize(wn, 480, 640);
   evas_object_show(wn);
   
   elm_run(); /* and run the program now  and handle all events etc. */

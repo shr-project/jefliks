@@ -74,9 +74,10 @@ int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc);
 
 typedef enum _Jabber_Subscript Jabber_Subscript;
 enum _Jabber_Subscript {
-  JABBER_SUBSCRIPT_TO = 0x1,
-  JABBER_SUBSCRIPT_FROM = 0x2,
-  JABBER_SUBSCRIPT_BOTH = 0x3
+  JABBER_SUBSCRIPT_NONE = 0,
+  JABBER_SUBSCRIPT_TO = 1,
+  JABBER_SUBSCRIPT_FROM = 2,
+  JABBER_SUBSCRIPT_BOTH = 3
 };
 
 void jabber_roster_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data);

@@ -129,6 +129,7 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
     if(jabber_state(wd->jabber)!=JABBER_DISCONNECTED){
       jabber_disconnect(wd->jabber);
     }
+    elm_jabber_roster_clear(wd->roster);
   }else{
     jabber_status_set(wd->jabber, wd->selected_status, _("I'm Jefliks! (Experimental Jabber Client for Handheld devices, based on Enlightenment) http://sourceforge.net/projects/jefliks/"));
     if(jabber_state(wd->jabber)==JABBER_CONNECTED){
