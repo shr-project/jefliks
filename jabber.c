@@ -127,25 +127,20 @@ on_result (Jabber_Session *sess, ikspak *pak){
 static void
 set_presence(Jabber_Session *sess, char *to, int show, char *desc){
   const char *from = sess->acc->full;
-  int res = 0;
   iks *presence = iks_make_pres(show, desc?desc:"");
   iks *priority = iks_new("priority");
   char priority_string[10];
   
-  if(sess && presence && priority){
-    if(to){
-      iks_insert_attrib(presence, "to", to);
-    }
-    if(from){
-      iks_insert_attrib(presence, "from", from);
-    }
-    snprintf(priority_string, sizeof(priority_string), "%d", sess->priority);
-    iks_insert_cdata(priority, priority_string, strlen(priority_string));
-    iks_insert_node(presence, priority);
-    res = iks_send(sess->prs, presence);
-  } else {
-    set_error("set_presence: Out of memory.\n");
+  if(to){
+    iks_insert_attrib(presence, "to", to);
   }
+  if(from){
+    iks_insert_attrib(presence, "from", from);
+  }
+  snprintf(priority_string, sizeof(priority_string), "%d", sess->priority);
+  iks_insert_cdata(priority, priority_string, strlen(priority_string));
+  iks_insert_node(presence, priority);
+  iks_send(sess->prs, presence);
   
   iks_delete(presence);
   iks_delete(priority);

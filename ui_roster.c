@@ -21,6 +21,8 @@
  */
 
 #include<Elementary.h>
+#include"elm_genlist_ext.h"
+
 #include"jabber.h"
 
 #include"ui_common.h"
@@ -37,6 +39,28 @@ _del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   free(wd);
 }
+
+/* Show {{{ */
+static struct {
+  Jabber_Show show;
+  const char *icon;
+} _show_icons_[] = {
+  { JABBER_UNAVAILABLE, "status/unavailable" },
+  { JABBER_AVAILABLE, "status/available" },
+  { JABBER_CHAT, "status/chat" },
+  { JABBER_AWAY, "status/away" },
+  { JABBER_XA, "status/xa" },
+  { JABBER_DND, "status/dnd" },
+  { JABBER_UNDEFINED, NULL }
+};
+static const char *icon_by_show(Jabber_Show show){
+  int i;
+  for(i=0; _show_icons_[i].icon; i++){
+    if(show==_show_icons_[i].show) return _show_icons_[i].icon;
+  }
+  return NULL;
+}
+/* Show }}} */
 
 
 /* Roster Item {{{ */
@@ -145,14 +169,18 @@ static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, 
 }
 
 static Evas_Object *_item_jid_icon_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
-  /*
-  char buf[PATH_MAX];
-  Evas_Object *ic = elm_icon_add(obj);
-  snprintf(buf, sizeof(buf), "%s/images/logo_small.png", PACKAGE_DATA_DIR);
-  elm_icon_file_set(ic, buf, NULL);
-  evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
-  return ic;
-  */
+  if(!strcmp(part, "elm.swallow.icon")){
+    Jabber_Show show=JABBER_UNDEFINED;
+    if(item->res)show=item->res->show;
+    const char *name=icon_by_show(show);
+    
+    if(name){
+      Evas_Object *icon = elm_icon_add(obj);
+      elm_icon_file_set(icon, "./" NAME ".edj", name);
+      evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+      return icon;
+    }
+  }
   return NULL;
 }
 
@@ -242,6 +270,15 @@ static char *_item_res_label_get(const Roster_Item_Res *item, Evas_Object *obj, 
 }
 
 static Evas_Object *_item_res_icon_get(const Roster_Item_Res *item, Evas_Object *obj, const char *part) {
+  if(!strcmp(part, "elm.swallow.icon")){
+    const char *name=icon_by_show(item->show);
+    if(name){
+      Evas_Object *icon = elm_icon_add(obj);
+      elm_icon_file_set(icon, "./" NAME ".edj", name);
+      evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+      return icon;
+    }
+  }
   return NULL;
 }
 
@@ -278,22 +315,39 @@ static Elm_Genlist_Item *item_res_get(Widget_Data *wd, const char *jid, const ch
   return NULL;
 }
 
+static void items_print(Widget_Data *wd){
+  Elm_Genlist_Item *it;
+  
+  printf("ENTRY {\n");
+  for(it=elm_genlist_first_item_get(wd->list); it; it=elm_genlist_item_next_get(it)){
+    const Roster_Item_Jid *item=elm_genlist_item_data_get(it);
+    if(item->type==ROSTER_ITEM_RES)printf(" >> RES slf:0x%x par:0x%x <<\n", it, elm_genlist_item_parent_get(it));
+    if(item->type==ROSTER_ITEM_JID)printf(" >> JID slf:0x%x par:0x%x <<\n", it, elm_genlist_item_parent_get(it));
+  }
+  printf("}\n");
+}
+
 static Elm_Genlist_Item *item_res_set(Widget_Data *wd, const char* jid, const char *res, int pri, Jabber_Show show, const char *desc){
   Elm_Genlist_Item *pr=item_jid_get(wd, jid);
+  if(!pr)return NULL;
+  
+  Roster_Item_Jid *pr_item=(Roster_Item_Jid *)elm_genlist_item_data_get(pr);
+  if(!pr_item)return NULL;
+  
   Elm_Genlist_Item *it=item_res_get(wd, jid, res);
   Roster_Item_Res *item;
   
-  if(!pr)return NULL;
-  
   if(it){
+    printf(">> Resource Upd\n");
     item=(Roster_Item_Res *)elm_genlist_item_data_get(it);
   }else{
+    printf(">> Resource Add\n");
     item=malloc(sizeof(Roster_Item_Res));
     
     item->type=ROSTER_ITEM_RES;
     item->wd=wd;
     item->res=strdup(res);
-    item->par=(Roster_Item_Jid *)elm_genlist_item_data_get(pr);
+    item->par=pr_item;
     
     item->desc=NULL;
   }
@@ -303,12 +357,23 @@ static Elm_Genlist_Item *item_res_set(Widget_Data *wd, const char* jid, const ch
   free(item->desc);
   item->desc=strdup(desc);
   
+  if(!pr_item->res || pr_item->res->pri < item->pri){ // update jid entry
+    pr_item->res=item;
+  }
+  elm_genlist_item_update(pr);
+  
+  // show resource
   if(it){
     elm_genlist_item_update(it);
   }else{
     it=elm_genlist_item_append(wd->list, &_item_res_class, item, pr, ELM_GENLIST_ITEM_NONE,
 			       (GenlistItemSelectFunc)_item_res_sel, item);
+    if(!elm_genlist_item_expanded_get(pr)){
+      evas_object_hide((Evas_Object*)elm_genlist_item_object_get(it));
+    }
   }
+  
+  items_print(wd);
   
   return it;
 }
@@ -317,6 +382,7 @@ static Elm_Genlist_Item *item_res_set(Widget_Data *wd, const char* jid, const ch
 
 /* Roster Item }}} */
 
+
 Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   Widget_Data *wd;
   
@@ -324,6 +390,9 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   
   wd->list = elm_genlist_add(parent);
   evas_object_event_callback_add(wd->list, EVAS_CALLBACK_FREE, _del_hook, wd);
+  elm_genlist_compress_mode_set(wd->list, 1);
+  elm_genlist_autoexpcon_mode_set(wd->list, 1);
+  
   evas_object_data_set(wd->list, "wd", wd);
   
   return wd->list;
