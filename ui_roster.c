@@ -32,6 +32,7 @@ struct _Widget_Data{
   Evas_Object *list;
   Jabber_Session *jabber;
   Eina_List *jids;
+  char *selected;
 };
 
 static void
@@ -209,6 +210,14 @@ static Eina_Bool _item_jid_state_get(const Roster_Item_Jid *item, Evas_Object *o
 
 static void _item_jid_sel(const Roster_Item_Jid *item, Evas_Object *obj, void *event_info) {
   printf("Selected Item %s\n", item->jid);
+  free(item->wd->selected);
+  const char *res="";
+  if(item->res && item->res->data){
+    const Roster_Item_Res *res_item=item->res->data;
+    res=res_item->res;
+  }
+  item->wd->selected=malloc(strlen(item->jid)+(res[0]?1+strlen(res):0)+1);
+  sprintf(item->wd->selected, "%s%s%s", item->jid, (res[0]?"/":""), res);
 }
 
 static const Elm_Genlist_Item_Class _item_jid_class={
@@ -303,6 +312,9 @@ static Eina_Bool _item_res_state_get(const Roster_Item_Res *item, Evas_Object *o
 
 static void _item_res_sel(const Roster_Item_Res *item, Evas_Object *obj, void *event_info) {
   printf("Selected Resource %s with pri:%d desc:%s\n", item->res, item->pri, item->desc);
+  free(item->wd->selected);
+  item->wd->selected=malloc(strlen(item->par->jid)+1+strlen(item->res)+1);
+  sprintf(item->wd->selected, "%s/%s", item->par->jid, item->res);
 }
 
 static const Elm_Genlist_Item_Class _item_res_class={
@@ -676,6 +688,11 @@ void elm_jabber_roster_clear(Evas_Object *roster){
   Widget_Data *wd=evas_object_data_get(roster, "wd");
   elm_genlist_clear(wd->list);
   item_jid_clr(wd);
+}
+
+const char *elm_jabber_roster_selected(Evas_Object *roster){
+  Widget_Data *wd=evas_object_data_get(roster, "wd");
+  return wd->selected;
 }
 
 #include<iksemel.h>

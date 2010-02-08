@@ -1,4 +1,4 @@
-/** ui_roster.h --- 
+/** ui_chat.h --- 
  *
  * Copyright (C) 2010 PhoeniX11 Kayo
  *
@@ -20,12 +20,12 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __UI_ROSTER__
-#define __UI_ROSTER__
+#ifndef __UI_CHAR_H__
+#define __UI_CHAR_H__
 
-Evas_Object *elm_jabber_roster_add(Evas_Object *parent);
-int elm_jabber_roster_register(Evas_Object *roster, Jabber_Session *sess);
-void elm_jabber_roster_clear(Evas_Object *roster);
-const char *elm_jabber_roster_selected(Evas_Object *roster);
+Evas_Object *elm_jabber_chat_add(Evas_Object *parent);
+void elm_jabber_chat_register(Evas_Object *parent, Jabber_Session *jabber);
+void elm_jabber_chat_enter(Evas_Object *parent, const char *jid);
+//Evas_Object *elm_jabber_chat_leave(Evas_Object *parent);
 
 #endif

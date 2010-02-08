@@ -29,6 +29,7 @@
 #include"ui_config.h"
 #include"ui_about.h"
 #include"ui_roster.h"
+#include"ui_chat.h"
 
 
 #ifndef default_status
@@ -38,7 +39,7 @@
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
-  Evas_Object *parent, *box, *status, *roster;
+  Evas_Object *parent, *root, *status, *roster, *chat;
   Jabber_Show selected_status;
   Jabber_Session *jabber;
 };
@@ -56,12 +57,24 @@ _exit_hook(void *data, Evas_Object *obj, void *event_info){
 }
 
 static void
-_config_del(void *data, Evas *e, Evas_Object *obj, void *event_info){
+_root_show(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  
   printf(">>> Show Main Window! <<<\n");
-  
-  evas_object_show(wd->box);
+  evas_object_show(wd->root);
+}
+
+static void
+_chat_hook(void *data, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  elm_jabber_chat_enter(wd->chat, elm_jabber_roster_selected(wd->roster));
+  evas_object_show(wd->chat);
+  evas_object_hide(wd->root);
+}
+
+static void
+_config_hide(void *data, Evas *e, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  _root_show(wd, e, obj, event_info);
   elm_jabber_config_load(wd->jabber);
 }
 
@@ -71,9 +84,9 @@ _config_hook(void *data, Evas_Object *obj, void *event_info){
   Evas_Object *settings = elm_jabber_config_add(wd->parent);
   evas_object_size_hint_weight_set(settings, 1.0, 1.0);
   elm_win_resize_object_add(wd->parent, settings);
-  evas_object_hide(wd->box);
+  evas_object_hide(wd->root);
   evas_object_show(settings);
-  evas_object_event_callback_add(settings, EVAS_CALLBACK_FREE, _config_del, wd);
+  evas_object_event_callback_add(settings, EVAS_CALLBACK_HIDE, _config_hide, wd);
 }
 
 static void
@@ -230,7 +243,7 @@ _error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
 
 Evas_Object *elm_jabber_main(Evas_Object *parent){
   Widget_Data *wd;
-  Evas_Object *box, *buttons, *status, *actions, *roster;
+  Evas_Object *box, *buttons, *status, *actions, *roster, *chat;
   
   wd = malloc(sizeof(Widget_Data));
   wd->jabber=jabber_new();
@@ -241,7 +254,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   
   /* Main box */
   box = elm_box_add(parent);
-  wd->box=box;
+  wd->root=box;
   //evas_object_size_hint_weight_set(box, 1.0, 1.0);
   //evas_object_size_hint_align_set(box, -1.0, -1.0);
   evas_object_event_callback_add(box, EVAS_CALLBACK_FREE, _del_hook, wd);
@@ -290,12 +303,21 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_size_hint_weight_set(actions, 1.0, 1.0);
   evas_object_size_hint_align_set(actions, -1.0, 0.0);
   
+  elm_hoversel_item_add(actions, _("Chat"), NULL, 0, _chat_hook, wd);
   elm_hoversel_item_add(actions, _("Settings"), NULL, 0, _config_hook, wd);
   elm_hoversel_item_add(actions, _("About"), NULL, 0, _about_hook, wd);
   elm_hoversel_item_add(actions, _("Exit"), NULL, 0, _exit_hook, NULL);
   
   elm_box_pack_end(buttons, actions);
   evas_object_show(actions);
+  
+  /* Chat Widget */
+  chat = elm_jabber_chat_add(parent);
+  wd->chat=chat;
+  elm_jabber_chat_register(chat, wd->jabber);
+  elm_win_resize_object_add(parent, chat);
+  evas_object_size_hint_weight_set(chat, 1.0, 1.0);
+  evas_object_event_callback_add(chat, EVAS_CALLBACK_HIDE, _root_show, wd);
   
   return box;
 }
