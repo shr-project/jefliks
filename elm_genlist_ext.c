@@ -135,7 +135,6 @@ _exp_end(void *data, Evas_Object *obj, void *event_info) {
   Elm_Genlist_Item *it = event_info;
   Elm_Genlist_Item *ch;
   for(ch=elm_genlist_item_first_subitem_get(it); ch; ch=elm_genlist_subitem_next_get(ch)){
-    ch->realized=1;
     evas_object_show((Evas_Object*)elm_genlist_item_object_get(ch));
   }
 }
@@ -144,7 +143,6 @@ _con_end(void *data, Evas_Object *obj, void *event_info) {
   Elm_Genlist_Item *it = event_info;
   Elm_Genlist_Item *ch;
   for(ch=elm_genlist_item_first_subitem_get(it); ch; ch=elm_genlist_subitem_next_get(ch)){
-    ch->realized=0;
     evas_object_hide((Evas_Object*)elm_genlist_item_object_get(ch));
   }
 }
@@ -160,19 +158,22 @@ _con_req(void *data, Evas_Object *obj, void *event_info) {
   elm_genlist_item_expanded_set(it, 0);
 }
 
+typedef void(*GenlistExpandFunc)(void *data, Elm_Genlist_Item *item, void *event_info);
+
 EAPI void
-elm_genlist_autoexpcon_mode_set(Evas_Object *obj, Elm_List_Mode mode){
-  if(mode){
-    evas_object_smart_callback_add(obj, "expand,request", _exp_req, NULL);
-    evas_object_smart_callback_add(obj, "contract,request", _con_req, NULL);
-    
-    evas_object_smart_callback_add(obj, "expanded", _exp_end, NULL);
-    evas_object_smart_callback_add(obj, "contracted", _con_end, NULL);
-  }else{
-    evas_object_smart_callback_del(obj, "expand,request", _exp_req);
-    evas_object_smart_callback_del(obj, "contract,request", _con_req);
-    
-    evas_object_smart_callback_del(obj, "expanded", _exp_end);
-    evas_object_smart_callback_del(obj, "contracted", _con_end);
-  }
+elm_genlist_expand_callback_add(Evas_Object *obj, GenlistExpandFunc req, GenlistExpandFunc exp, const void *data){
+  evas_object_smart_callback_add(obj, "expand,request", _exp_req, NULL);
+  evas_object_smart_callback_add(obj, "contract,request", _con_req, NULL);
+  
+  evas_object_smart_callback_add(obj, "expanded", _exp_end, NULL);
+  evas_object_smart_callback_add(obj, "contracted", _con_del, NULL);
+}
+
+EAPI void
+elm_genlist_expand_callback_del(Evas_Object *obj, GenlistExpandFunc func){
+  evas_object_smart_callback_del(obj, "expand,request", func);
+  evas_object_smart_callback_del(obj, "contract,request", _con_req);
+  
+  evas_object_smart_callback_del(obj, "expanded", _exp_end);
+  evas_object_smart_callback_del(obj, "contracted", _con_del);
 }
