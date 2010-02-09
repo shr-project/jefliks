@@ -47,7 +47,7 @@ int main(int argc, char **argv){
   //tf = main_win_theme();
   
   wn = elm_win_add(NULL, "main", ELM_WIN_BASIC);
-  elm_win_title_set(wn, "Elementary Jabber Client");
+  elm_win_title_set(wn, NAME);
   //elm_win_autodel_set(wn, 1);
   evas_object_smart_callback_add(wn, "delete-request", main_win_del, NULL);
   

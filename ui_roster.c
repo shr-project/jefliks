@@ -664,22 +664,27 @@ _con_req(void *data, Evas_Object *obj, void *event_info) {
 
 
 Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
+  Evas_Object *list;
   Widget_Data *wd;
   
   wd = malloc(sizeof(Widget_Data));
   
   wd->jids=NULL;
   wd->selected=NULL;
-  wd->list = elm_genlist_add(parent);
-  evas_object_event_callback_add(wd->list, EVAS_CALLBACK_FREE, _del_hook, wd);
-  elm_genlist_compress_mode_set(wd->list, 1);
-  evas_object_data_set(wd->list, "wd", wd);
   
-  evas_object_smart_callback_add(wd->list, "expand,request", _exp_req, NULL);
-  evas_object_smart_callback_add(wd->list, "contract,request", _con_req, NULL);
+  list = elm_genlist_add(parent);
+  wd->list = list;
+  elm_object_scale_set(list, 0.7);
   
-  evas_object_smart_callback_add(wd->list, "expanded", _exp_end, NULL);
-  evas_object_smart_callback_add(wd->list, "contracted", _con_end, NULL);
+  evas_object_event_callback_add(list, EVAS_CALLBACK_FREE, _del_hook, wd);
+  elm_genlist_compress_mode_set(list, 1);
+  evas_object_data_set(list, "wd", wd);
+  
+  evas_object_smart_callback_add(list, "expand,request", _exp_req, NULL);
+  evas_object_smart_callback_add(list, "contract,request", _con_req, NULL);
+  
+  evas_object_smart_callback_add(list, "expanded", _exp_end, NULL);
+  evas_object_smart_callback_add(list, "contracted", _con_end, NULL);
   
   return wd->list;
 }
