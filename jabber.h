@@ -69,6 +69,7 @@ int jabber_connect(Jabber_Session *sess);
 int jabber_disconnect(Jabber_Session *sess);
 Jabber_State jabber_state(Jabber_Session *sess);
 int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc);
+int jabber_chat_send(Jabber_Session *sess, const char *to, const char *body);
 
 /* Roster handling */
 

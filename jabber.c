@@ -171,6 +171,21 @@ on_presence (Jabber_Session *sess, ikspak *pak) {
 
 /* Roster Handling }}} */
 
+int jabber_chat_send(Jabber_Session *sess, const char *to, const char *body){
+  iks *msg = iks_make_msg(IKS_TYPE_CHAT, to, body);
+  iks_send(sess->prs, msg);
+  iks_delete(msg);
+  return 1;
+}
+
+static int
+on_chat (Jabber_Session *sess, ikspak *pak) {
+  if(sess->chat_cb.func){
+    sess->chat_cb.func((void*)sess->chat_cb.data, sess, (void*)pak);
+  }
+  return IKS_FILTER_EAT;
+}
+
 int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc){
   if(show!=JABBER_UNDEFINED){
     if(sess->show_desc)free(sess->show_desc);
@@ -306,6 +321,10 @@ setup_filter (Jabber_Session *sess) {
 		       IKS_RULE_DONE);
   iks_filter_add_rule (sess->filter, (iksFilterHook *)on_presence, sess,
 		       IKS_RULE_TYPE, IKS_PAK_PRESENCE,
+		       IKS_RULE_DONE);
+  iks_filter_add_rule (sess->filter, (iksFilterHook *)on_chat, sess,
+		       IKS_RULE_TYPE, IKS_PAK_MESSAGE,
+		       IKS_RULE_SUBTYPE, IKS_TYPE_CHAT,
 		       IKS_RULE_DONE);
 }
 
