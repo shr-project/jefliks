@@ -30,28 +30,18 @@ typedef struct _Chat_Inst Chat_Inst;
 
 struct _Chat_Inst{ /* Chat Instance */
   Widget_Data *wd;
-  Evas_Object *box;
+  Evas_Object *box /* chat object */, *que /* messages queue */, *scroll /* messages queue */, *input /* input area */;
   Elm_Hoversel_Item *itm;
   char *jid; // jid/res
 };
 
 struct _Widget_Data{
-  Evas_Object *parent, *root, *chats, *scroll, *empty, *input;
+  Evas_Object *parent, *root, *chats, *pager, *empty;
   Eina_List *insts; /* Chat Instances */
   Chat_Inst *cinst; /* Current Chat Instance */
   Jabber_Session *jabber; /* Jabber Session */
+  char finalize;
 };
-
-static void
-_chat_sel_hook(void *data, Evas_Object *obj, void *event_info){
-  Chat_Inst *chat=data;
-  evas_object_hide(chat->wd->empty);
-  if(chat->wd->cinst) evas_object_hide(chat->wd->cinst->box);
-  elm_scroller_content_set(chat->wd->scroll, chat->box);
-  elm_hoversel_label_set(chat->wd->chats, chat->jid);
-  evas_object_show(chat->box);
-  chat->wd->cinst=chat;
-}
 
 static Chat_Inst *inst_fnd(Widget_Data *wd, const char *jid){
   if(!wd || !jid)return NULL;
@@ -64,18 +54,73 @@ static Chat_Inst *inst_fnd(Widget_Data *wd, const char *jid){
   return NULL;
 }
 
+static void inst_sel(Widget_Data *wd, Chat_Inst *chat){
+  if(chat){
+    elm_pager_content_promote(wd->pager, chat->box);
+    elm_hoversel_label_set(wd->chats, chat->jid);
+  }else{
+    elm_pager_content_promote(wd->pager, wd->empty);
+    elm_hoversel_label_set(wd->chats, _("Chats"));
+  }
+  wd->cinst=chat;
+}
+
+static void
+_chat_sel_hook(void *data, Evas_Object *obj, void *event_info){
+  Chat_Inst *chat=data;
+  Widget_Data *wd=chat->wd;
+  
+  inst_sel(wd, chat);
+}
+
 static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
   Chat_Inst *chat=inst_fnd(wd, jid);
   
   if(jid && !chat){
+    Evas_Object *box, *scroll, *que, *input;
+    
     chat=malloc(sizeof(Chat_Inst));
+    memset(chat, 0, sizeof(Chat_Inst));
+    
+    printf("Chat Inst Add: 0x%x\n", chat);
     
     chat->wd=wd;
     chat->jid=strdup(jid);
     
-    chat->box=elm_box_add(wd->parent);
-    evas_object_size_hint_weight_set(chat->box, 1.0, 0.0);
-    evas_object_hide(chat->box);
+    /* Messages Box */
+    que = elm_box_add(wd->parent);
+    chat->que=que;
+    evas_object_size_hint_weight_set(que, EVAS_HINT_EXPAND, 0.0);
+    evas_object_size_hint_align_set(que, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    evas_object_show(que);
+    
+    /* Messages Scroll */
+    scroll = elm_scroller_add(wd->parent);
+    chat->scroll = scroll;
+    elm_scroller_bounce_set(scroll, 0.0, 0.0);
+    evas_object_size_hint_weight_set(scroll, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+    evas_object_size_hint_align_set(scroll, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    elm_scroller_content_set(scroll, que);
+    evas_object_show(scroll);
+    
+    /* Input Entry */
+    input = elm_entry_add(wd->parent);
+    chat->input = input;
+    /*elm_entry_single_line_set(input, EINA_TRUE);*/
+    evas_object_size_hint_weight_set(input, EVAS_HINT_EXPAND, 0.0);
+    evas_object_size_hint_align_set(input, EVAS_HINT_FILL, 0.0);
+    evas_object_hide(input);
+    
+    /* Page Box */
+    box = elm_box_add(wd->parent);
+    chat->box = box;
+    evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+    evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    //evas_object_event_callback_add(box, EVAS_CALLBACK_FREE, _chat_del_hook, wd);
+    elm_box_pack_end(box, scroll);
+    elm_box_pack_end(box, input);
+    elm_pager_content_push(wd->pager, box);
+    evas_object_show(box);
     
     chat->itm=elm_hoversel_item_add(wd->chats, jid, NULL, 0, _chat_sel_hook, chat);
     
@@ -86,47 +131,85 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
 }
 
 static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - out */){
-  Evas_Object *msg=elm_bubble_add(chat->wd->parent);
-  elm_bubble_label_set(msg, dir?"you":chat->jid);
-  elm_bubble_info_set(msg, text);
+  if(!chat || !text)return;
+  Widget_Data *wd=chat->wd;
+  Evas_Object *repl, *body;
   
-  elm_box_pack_end(chat->box, msg);
-  evas_object_show(msg);
+  char *msg=malloc(strlen(text)+4+1);
+  sprintf(msg, "<br>%s", text);
+  
+  body=elm_anchorblock_add(wd->parent);
+  elm_anchorblock_text_set(body, msg);
+  elm_anchorblock_hover_style_set(body, "popout");
+  elm_anchorblock_hover_parent_set(body, wd->parent);
+  
+  repl=elm_bubble_add(wd->parent);
+  elm_bubble_label_set(repl, dir?"you":chat->jid);
+  
+  switch(1){
+    char buf[64];
+    time_t now;
+    struct tm t;
+  case 1:
+#define default_timefmt "%Y-%m-%d %H:%M:%S"
+    memset(&t, 0, sizeof(t));
+    now=time(&now);
+    if(!localtime_r(&now, &t))break;
+    if(!strftime(buf, sizeof(buf), default_timefmt, &t))break;
+    
+    elm_bubble_info_set(repl, buf);
+  }
+  //elm_bubble_corner_set(repl, dir?"you":chat->jid);
+  /*elm_bubble_info_set(repl, text);*/
+  evas_object_size_hint_weight_set(repl, EVAS_HINT_EXPAND, 0.0);
+  evas_object_size_hint_align_set(repl, EVAS_HINT_FILL, EVAS_HINT_FILL);
+  elm_bubble_content_set(repl, body);
+  
+  elm_box_pack_end(chat->que, repl);
+  evas_object_show(repl);
 }
 
 static void inst_free(Chat_Inst *chat){
   if(!chat)return;
   
-  { /* switch to other chat */
-    const Eina_List *entry=elm_hoversel_items_get(chat->wd->chats);
+  printf("Chat Inst Del: 0x%x\n", chat);
+  
+  /* switch to other chat */
+  Widget_Data *wd=chat->wd;
+  
+  wd->insts=eina_list_remove(wd->insts, chat);
+  
+  if(!wd->finalize){
+    elm_pager_content_promote(wd->pager, chat->box);
+    elm_pager_content_pop(wd->pager);
+    evas_object_del(chat->box);
+    
+    const Eina_List *entry=elm_hoversel_items_get(wd->chats);
     if(entry->next){
       for(; entry; entry=entry->next){
 	const Elm_Hoversel_Item *another=entry->data;
 	if(chat->itm==another)continue;
-	_chat_sel_hook(chat, chat->box, NULL);
+	inst_sel(wd, chat);
 	break;
       }
     }else{
-      chat->wd->cinst=NULL;
-      elm_scroller_content_set(chat->wd->scroll, chat->wd->empty);
-      evas_object_show(chat->wd->empty);
+      inst_sel(wd, NULL);
     }
+    
+    elm_hoversel_item_del(chat->itm);
   }
   
-  elm_hoversel_item_del(chat->itm);
-  evas_object_del(chat->box);
   free(chat->jid);
   free(chat);
 }
 
 static void inst_del(Widget_Data *wd, const char *jid){
   Chat_Inst *chat=inst_fnd(wd, jid);
-  
   inst_free(chat);
 }
 
 static void
-_chat_del_hook(void *data, Evas_Object *obj, void *event_info){
+_chat_end_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   //Evas_Object *box=elm_scroller_content_get(wd->scroll);
   const char *jid=elm_hoversel_label_get(wd->chats);
@@ -138,6 +221,7 @@ _del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   Eina_List *entry;
   
+  wd->finalize=1;
   for(entry=wd->insts; entry; entry=entry->next){
     Chat_Inst *chat=entry->data;
     inst_free(chat);
@@ -149,24 +233,28 @@ _del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
 static void
 _send_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  Eina_Bool st=evas_object_visible_get(wd->input);
+  Chat_Inst *chat=wd->cinst;
+  if(!chat)return;
+  Eina_Bool st=evas_object_visible_get(chat->input);
   if(st){
-    Chat_Inst *chat=wd->cinst;
-    if(chat){ // send message
-      const char* txt=elm_entry_entry_get(wd->input);
-      inst_add(chat, txt, 1);
-      jabber_chat_send(wd->jabber, chat->jid, txt);
-    }
-    evas_object_hide(wd->input);
+    const char* txt=elm_entry_entry_get(chat->input);
+    inst_add(chat, txt, 1);
+    char *txs=elm_entry_markup_to_utf8(txt);
+    if(txs) jabber_chat_send(wd->jabber, chat->jid, txt);
+    free(txs);
+    elm_entry_entry_set(chat->input, "");
+    evas_object_hide(chat->input);
   }else{
-    evas_object_show(wd->input);
+    evas_object_show(chat->input);
   }
 }
 
 void elm_jabber_chat_enter(Evas_Object *box, const char *jid){
   Widget_Data *wd=evas_object_data_get(box, "wd");
-  
-  inst_get(wd, jid);
+  if(jid){
+    Chat_Inst *chat=inst_get(wd, jid);
+    inst_sel(wd, chat);
+  }
 }
 
 static void
@@ -177,11 +265,12 @@ _close_hook(void *data, Evas_Object *obj, void *event_info){
 
 Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   Widget_Data *wd;
-  Evas_Object *box, *chats, *scroll, *input, *buttons, *actions, *send, *empty, *empty_label;
+  Evas_Object *box, *chats, *pager, *buttons, *actions, *send, *empty, *empty_label;
   
   wd = malloc(sizeof(Widget_Data));
   memset(wd, 0, sizeof(Widget_Data));
   wd->parent=parent;
+  wd->finalize=0;
   
   /* Main box */
   box = elm_box_add(parent);
@@ -214,24 +303,14 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   elm_frame_content_set(empty, empty_label);
   evas_object_show(empty);
   
-  /* Messages Scroll */
-  scroll = elm_scroller_add(parent);
-  wd->scroll = scroll;
-  /*elm_scroller_bounce_set(scroll, 0.0, 0.0);*/
-  evas_object_size_hint_weight_set(scroll, 1.0, 1.0);
-  evas_object_size_hint_align_set(scroll, -1.0, -1.0);
-  elm_scroller_content_set(scroll, empty);
-  elm_box_pack_end(box, scroll);
-  evas_object_show(scroll);
-  
-  /* Input Entry */
-  input = elm_entry_add(parent);
-  wd->input = input;
-  /*elm_entry_single_line_set(input, EINA_TRUE);*/
-  evas_object_size_hint_weight_set(input, 1.0, 0.0);
-  evas_object_size_hint_align_set(input, -1.0, 0.0);
-  elm_box_pack_end(box, input);
-  evas_object_hide(input);
+  /* Chats Pager */
+  pager = elm_pager_add(parent);
+  wd->pager = pager;
+  elm_pager_content_push(pager, empty);
+  evas_object_size_hint_weight_set(pager, 1.0, 1.0);
+  evas_object_size_hint_align_set(pager, -1.0, -1.0);
+  elm_box_pack_end(box, pager);
+  evas_object_show(pager);
   
   /* Buttons */
   buttons = elm_box_add(parent);
@@ -250,7 +329,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   evas_object_size_hint_align_set(actions, -1.0, 0.0);
   
   elm_hoversel_item_add(actions, _("Roster"), NULL, 0, _close_hook, wd);
-  elm_hoversel_item_add(actions, _("Close"), NULL, 0, _chat_del_hook, wd);
+  elm_hoversel_item_add(actions, _("End Chat"), NULL, 0, _chat_end_hook, wd);
   
   elm_box_pack_end(buttons, actions);
   evas_object_show(actions);
@@ -258,7 +337,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   /* Send Button */
   send = elm_button_add(parent);
   elm_button_label_set(send, _("Send"));
-  elm_button_autorepeat_set(send, 0);
+  //elm_button_autorepeat_set(send, 0);
   evas_object_smart_callback_add(send, "clicked", _send_hook, wd);
   evas_object_size_hint_weight_set(send, 1.0, 0.0);
   evas_object_size_hint_align_set(send, -1.0, 0.0);
@@ -272,12 +351,15 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
 
 void _chat_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
   Chat_Inst *chat=inst_get(wd, pak->from->full);
-  iks* msg=iks_find(pak->x, "body");
-  inst_add(chat, iks_cdata(msg), 0);
+  const char *txt=iks_find_cdata(pak->x, "body");
+  char *txr=elm_entry_utf8_to_markup(txt);
+  //printf(">>pak:%s txt:[%s] txr:[%s] <<\n", iks_name(pak->x), txt, txr);
+  if(txr) inst_add(chat, txr, 0);
+  free(txr);
 }
 
 void elm_jabber_chat_register(Evas_Object *box, Jabber_Session *jabber){
-   Widget_Data *wd=evas_object_data_get(box, "wd");
-   wd->jabber=jabber;
-   jabber_chat_callback_set(jabber, (Jabber_Callback)_chat_hook, wd);
+  Widget_Data *wd=evas_object_data_get(box, "wd");
+  wd->jabber=jabber;
+  jabber_chat_callback_set(jabber, (Jabber_Callback)_chat_hook, wd);
 }

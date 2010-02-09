@@ -55,7 +55,8 @@ _server_enable_hook(void *data, Evas_Object *obj, void *event_info){
   char st;
   
   st=elm_check_state_get(wd->server_enable);
-  elm_object_disabled_set(wd->server, !st);
+  //elm_object_disabled_set(wd->server, !st);
+  elm_entry_editable_set(wd->server, st);
 }
 
 static void
