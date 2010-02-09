@@ -73,6 +73,15 @@ _chat_sel_hook(void *data, Evas_Object *obj, void *event_info){
   inst_sel(wd, chat);
 }
 
+void _que_resize(void *data, Evas *e, Evas_Object *obj, void *event_info){
+  Chat_Inst *chat=data;
+  Evas_Coord cw, ch, rx, ry, rw, rh;
+  elm_scroller_child_size_get(chat->scroll, &cw, &ch);
+  elm_scroller_region_get(chat->scroll, &rx, &ry, &rw, &rh);
+  printf("cw:%d ch:%d rx:%d ry: %d rw:%d rh:%d\n", cw, ch, rx, ry, rw, rh);
+  elm_scroller_region_bring_in(chat->scroll, rx, ry+(ch-rh), rw, rh);
+}
+
 static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
   Chat_Inst *chat=inst_fnd(wd, jid);
   
@@ -91,7 +100,9 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     que = elm_box_add(wd->parent);
     chat->que=que;
     evas_object_size_hint_weight_set(que, EVAS_HINT_EXPAND, 0.0);
-    evas_object_size_hint_align_set(que, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    //evas_object_size_hint_align_set(que, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    evas_object_size_hint_align_set(que, EVAS_HINT_FILL, 1.0);
+    evas_object_event_callback_add(que, EVAS_CALLBACK_RESIZE, _que_resize, chat);
     evas_object_show(que);
     
     /* Messages Scroll */
@@ -167,6 +178,9 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   
   elm_box_pack_end(chat->que, repl);
   evas_object_show(repl);
+  
+  //elm_object_scroll_freeze_push(chat->que);
+  //elm_object_scroll_hold_push(chat->que);
 }
 
 static void inst_free(Chat_Inst *chat){
@@ -244,7 +258,9 @@ _send_hook(void *data, Evas_Object *obj, void *event_info){
     free(txs);
     elm_entry_entry_set(chat->input, "");
     evas_object_hide(chat->input);
+    elm_button_label_set(obj, _("Write"));
   }else{
+    elm_button_label_set(obj, _("Send"));
     evas_object_show(chat->input);
   }
 }
@@ -336,7 +352,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   
   /* Send Button */
   send = elm_button_add(parent);
-  elm_button_label_set(send, _("Send"));
+  elm_button_label_set(send, _("Write"));
   //elm_button_autorepeat_set(send, 0);
   evas_object_smart_callback_add(send, "clicked", _send_hook, wd);
   evas_object_size_hint_weight_set(send, 1.0, 0.0);
