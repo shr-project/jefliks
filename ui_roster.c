@@ -620,7 +620,9 @@ static void roster_reload(Widget_Data *wd, ikspak *pak){
   }
 }
 
-#include<openssl/sha.h>
+//#include<openssl/sha.h>
+
+#include"sha1.h"
 
 static void check_status_photo(Widget_Data *wd, ikspak *pak){
   char *new_sha=iks_find_cdata(iks_find_with_attrib(pak->x, "x", "xmlns", IKS_NS_VCARD ":x:update"), "photo");
@@ -637,20 +639,31 @@ static void check_status_photo(Widget_Data *wd, ikspak *pak){
     if(fd){
       if(read(fd, data, st.st_size)==st.st_size){
 	char old_sha[41];
+	/*
 	old_sha[40]='\0';
 	iksha* sha=iks_sha_new();
+	*/
 	close(fd);
 	/*
 	iks_sha_hash(sha, data, st.st_size, 1);
 	iks_sha_print(sha, old_sha);
 	iks_sha_delete(sha);
 	*/
+	/*
 	int i;
 	unsigned char hash[20];
 	SHA1(data, st.st_size, hash);
 	for (i=0; i<20; i++) {
 	  sprintf(old_sha+i*2, "%02x", hash[i]);
         }
+	*/
+	unsigned char dig[20];
+	sha1_ctx *sha=sha1_init();
+	sha1_update(&sha, data, st.st_size);
+	sha1_final(&sha, dig);
+	sha1_print(dig, old_sha);
+	free(sha);
+	
 	printf(">> old sha: [%s]\n", old_sha);
 	if(!memcmp(new_sha, old_sha, 40)){
 	  return;

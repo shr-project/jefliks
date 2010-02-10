@@ -23,7 +23,7 @@
 #ifndef __JABBER_H__
 #define __JABBER_H__
 
-#include<iksemel.h>
+//#include<iksemel.h>
 
 typedef struct _Jabber_Session Jabber_Session;
 

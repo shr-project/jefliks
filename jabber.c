@@ -437,6 +437,8 @@ int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, 
   
   sess->priority=4;
   
+  printf(">>> Jabber Configured..\n");
+  
   return 1;
 }
 
