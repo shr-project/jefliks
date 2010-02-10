@@ -14,7 +14,7 @@ static const char *BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
  * @param triple three bytes that should be encoded
  * @param result buffer of four characters where the result is stored
  */
-static void _base64_encode_triple(unsigned char triple[3], char result[4]) {
+static void _base64_encode_triple(const unsigned char triple[3], char result[4]) {
   int tripleValue, i;
   
   tripleValue = triple[0];
@@ -38,7 +38,7 @@ static void _base64_encode_triple(unsigned char triple[3], char result[4]) {
  * @param targetlen the length of the target buffer
  * @return 1 on success, 0 otherwise
  */
-int base64_encode(unsigned char *source, size_t sourcelen, char *target, size_t targetlen){
+int base64_encode(const unsigned char *source, size_t sourcelen, char *target, size_t targetlen){
   /* check if the result will fit in the target buffer */
   if ((sourcelen+2)/3*4 > targetlen-1) return 0;
   
@@ -151,7 +151,7 @@ static int _base64_decode_triple(char quadruple[4], unsigned char *result) {
  * @param targetlen length of the target buffer
  * @return length of converted data on success, -1 otherwise
  */
-size_t base64_decode(char *source, unsigned char *target, size_t targetlen) {
+size_t base64_decode(const char *source, unsigned char *target, size_t targetlen) {
   char *src, *tmpptr;
   char quadruple[4];
   unsigned char tmpresult[3];

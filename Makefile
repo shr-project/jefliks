@@ -1,7 +1,7 @@
 name = jelmiks
 version = 0.0.1
 author = Phoenix Kayo <kayo.k11.4@gmail.com>
-sources = main.c jabber.c ui_config.c ui_about.c ui_roster.c ui_chat.c ui_main.c base64.c sha1.c
+sources = main.c jabber.c ui_config.c ui_about.c ui_roster.c ui_chat.c ui_main.c base64.c
 dynlibs = evas ecore edje ecore-evas eina-0 elementary  #
 stclibs = iksemel #openssl
 libs = $(dynlibs) $(stclibs)

@@ -620,10 +620,6 @@ static void roster_reload(Widget_Data *wd, ikspak *pak){
   }
 }
 
-//#include<openssl/sha.h>
-
-#include"sha1.h"
-
 static void check_status_photo(Widget_Data *wd, ikspak *pak){
   char *new_sha=iks_find_cdata(iks_find_with_attrib(pak->x, "x", "xmlns", IKS_NS_VCARD ":x:update"), "photo");
   if(!new_sha)return;
@@ -631,56 +627,44 @@ static void check_status_photo(Widget_Data *wd, ikspak *pak){
   printf(">> new sha: [%s]\n", new_sha);
   char path[strlen(PHOTOS_PATH)+1+strlen(pak->from->partial)+1];
   sprintf(path, PHOTOS_PATH "/%s", pak->from->partial);
+  char path_hash[strlen(path)+1+4+1];
+  sprintf(path_hash, "%s.hash", path);
   
-  struct stat st;
-  if(0==stat(path, &st) && st.st_size>0){ // if photo in cache, check it for update
-    unsigned char data[st.st_size];
-    int fd=open(path, O_RDONLY);
-    if(fd){
-      if(read(fd, data, st.st_size)==st.st_size){
-	char old_sha[41];
-	/*
-	old_sha[40]='\0';
-	iksha* sha=iks_sha_new();
-	*/
+  int fd=open(path, O_RDONLY);
+  if(fd>0){ // check photo
+    struct stat st;
+    close(fd);
+    if((fd=open(path_hash, O_RDONLY))>0 && 0==fstat(fd, &st) && st.st_size>=40){
+      char old_sha[41];
+      old_sha[40]='\0';
+      if(read(fd, old_sha, 40)==40){
 	close(fd);
-	/*
-	iks_sha_hash(sha, data, st.st_size, 1);
-	iks_sha_print(sha, old_sha);
-	iks_sha_delete(sha);
-	*/
-	/*
-	int i;
-	unsigned char hash[20];
-	SHA1(data, st.st_size, hash);
-	for (i=0; i<20; i++) {
-	  sprintf(old_sha+i*2, "%02x", hash[i]);
-        }
-	*/
-	unsigned char dig[20];
-	sha1_ctx *sha=sha1_init();
-	sha1_update(&sha, data, st.st_size);
-	sha1_final(&sha, dig);
-	sha1_print(dig, old_sha);
-	free(sha);
 	
 	printf(">> old sha: [%s]\n", old_sha);
 	if(!memcmp(new_sha, old_sha, 40)){
 	  return;
 	}
+      }else{
+	close(fd);
       }
     }
+  }
+  
+  unlink(path);
+  
+  fd=creat(path_hash, 0644);
+  if(fd>0){
+    write(fd, new_sha, 40);
+    close(fd);
   }
   
   jabber_vcard_req(wd->jabber, pak->from->partial);
 }
 
-static void update_status_photo(Widget_Data *wd, ikspak *pak){
-  const char *from=pak->from->partial;
+static void update_status_photo(Widget_Data *wd, const char *from, const char *buf){
   char path[strlen(PHOTOS_PATH)+1+strlen(from)+1];
   sprintf(path, PHOTOS_PATH "/%s", from);
   
-  const char *buf=iks_find_cdata(iks_find(iks_find(pak->x, "vCard"), "PHOTO"), "BINVAL");
   if(!buf){
     printf(">> photo for %s not exists in vcard!\n", from);
     return;
@@ -748,9 +732,16 @@ _roster_event_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
 	roster_reload(wd, pak);
       }
       if(!strcmp(pak->id, "vc2")){
-	update_status_photo(wd, pak);
+	const char *data=iks_find_cdata(iks_find(iks_find(pak->x, "vCard"), "PHOTO"), "BINVAL");
+	if(data) update_status_photo(wd, pak->from->partial, data);
       }
     }
+  }
+  if(pak->type==IKS_PAK_MESSAGE){
+    const char *data=iks_find_cdata(iks_find(iks_find_with_attrib(iks_find_with_attrib(pak->x, "event", "xmlns",
+										       "http://jabber.org/protocol/pubsub#event"),
+								  "items", "node", "urn:xmpp:avatar:data"), "item"), "data");
+    if(data) update_status_photo(wd, pak->from->partial, data);
   }
 }
 
