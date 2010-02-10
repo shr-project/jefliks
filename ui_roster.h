@@ -27,5 +27,6 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent);
 int elm_jabber_roster_register(Evas_Object *roster, Jabber_Session *sess);
 void elm_jabber_roster_clear(Evas_Object *roster);
 const char *elm_jabber_roster_selected(Evas_Object *roster);
+Evas_Object *elm_jabber_photo_add(Evas_Object *obj, const char *jid);
 
 #endif

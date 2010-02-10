@@ -34,7 +34,7 @@ main_win_theme(){
 
 #define DBGMSG(m) printf("DBG: " #m "..\n");
 
-static void check_dir(const char* dir){
+void check_dir(const char* dir){
   struct stat st;
   if(stat(dir, &st)){
     mkdir(dir, 0755);

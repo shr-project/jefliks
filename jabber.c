@@ -126,25 +126,33 @@ on_result (Jabber_Session *sess, ikspak *pak){
 }
 
 static void
-set_presence(Jabber_Session *sess, char *to, int show, char *desc){
-  const char *from = sess->acc->full;
-  iks *presence = iks_make_pres(show, desc?desc:"");
-  iks *priority = iks_new("priority");
-  char priority_string[10];
+set_presence(Jabber_Session *sess, char *to, Jabber_Show show, char *desc){
+  int sw=0;
+  
+  switch(show){
+  case JABBER_ONLINE: sw=IKS_SHOW_AVAILABLE; break;
+  case JABBER_AVAILABLE: sw=IKS_SHOW_AVAILABLE; break;
+  case JABBER_OFFLINE: sw=IKS_SHOW_UNAVAILABLE; break;
+  case JABBER_UNAVAILABLE: sw=IKS_SHOW_UNAVAILABLE; break;
+  case JABBER_CHAT: sw=IKS_SHOW_CHAT; break;
+  case JABBER_AWAY: sw=IKS_SHOW_AWAY; break;
+  case JABBER_XA: sw=IKS_SHOW_XA; break;
+  case JABBER_DND: sw=IKS_SHOW_DND; break;
+  default: break;
+  }
+  
+  iks *presence = iks_make_pres(sw, desc?desc:"");
+  char buf[10];
   
   if(to){
     iks_insert_attrib(presence, "to", to);
   }
-  if(from){
-    iks_insert_attrib(presence, "from", from);
-  }
-  snprintf(priority_string, sizeof(priority_string), "%d", sess->priority);
-  iks_insert_cdata(priority, priority_string, strlen(priority_string));
-  iks_insert_node(presence, priority);
+  iks_insert_attrib(presence, "from", sess->acc->full);
+  snprintf(buf, sizeof(buf), "%d", sess->priority);
+  iks_insert_cdata(iks_insert(presence, "priority"), buf, strlen(buf));
   iks_send(sess->prs, presence);
   
   iks_delete(presence);
-  iks_delete(priority);
 }
 
 /* Roster Handling {{{ */
@@ -179,8 +187,9 @@ on_vcard (Jabber_Session *sess, ikspak *pak) {
 
 /* Roster Handling }}} */
 
-int jabber_chat_send(Jabber_Session *sess, const char *to, const char *body){
-  iks *msg = iks_make_msg(IKS_TYPE_CHAT, to, body);
+int jabber_chat_send(Jabber_Session *sess, const char *jid, const char *body){
+  if(!sess || !jid || !body || sess->state!=JABBER_CONNECTED)return 0;
+  iks *msg = iks_make_msg(IKS_TYPE_CHAT, jid, body);
   iks_send(sess->prs, msg);
   iks_delete(msg);
   return 1;
@@ -211,13 +220,12 @@ char jabber_hastls(){
   return iks_has_tls();
 }
 
-int jabber_req_vcard(Jabber_Session *sess, const char *jid){
+int jabber_vcard_req(Jabber_Session *sess, const char *jid){
   if(!sess || !jid || sess->state!=JABBER_CONNECTED)return 0;
   iks *x=iks_make_iq(IKS_TYPE_GET, IKS_NS_VCARD);
   iks_insert_attrib(x, "id", "vc2");
   iks_insert_attrib(x, "to", jid);
   iks_insert_attrib(x, "from", sess->acc->full);
-  iks_insert_attrib(iks_insert(x, "vCard"), "xmlns", IKS_NS_VCARD);
   iks_send(sess->prs, x);
   iks_delete(x);
   return 1;

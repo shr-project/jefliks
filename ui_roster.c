@@ -27,9 +27,11 @@
 #include"ui_common.h"
 #include"ui_roster.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+
+#include"base64.h"
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
@@ -190,6 +192,15 @@ static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, 
   return strdup(buf);
 }
 
+Evas_Object *elm_jabber_photo_add(Evas_Object *obj, const char *jid){
+  char path[strlen(PHOTOS_PATH)+1+strlen(jid)+1];
+  Evas_Object *icon = elm_icon_add(obj);
+  sprintf(path, PHOTOS_PATH "/%s", jid);
+  elm_icon_file_set(icon, path, NULL);
+  evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+  return icon;
+}
+
 static Evas_Object *_item_jid_icon_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
   if(!strcmp(part, "elm.swallow.icon")){
     Jabber_Show show=JABBER_UNAVAILABLE;
@@ -205,6 +216,9 @@ static Evas_Object *_item_jid_icon_get(const Roster_Item_Jid *item, Evas_Object 
       evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
       return icon;
     }
+  }
+  if(!strcmp(part, "elm.swallow.end")){
+    return elm_jabber_photo_add(obj, item->jid);
   }
   return NULL;
 }
@@ -264,15 +278,6 @@ static Evas_Object *_item_res_icon_get(const Roster_Item_Res *item, Evas_Object 
       evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
       return icon;
     }
-  }
-  if(!strcmp(part, "elm.swallow.icon.end")){
-    char *name=malloc(strlen(PHOTOS_PATH)+1+strlen(item->par->jid)+1+strlen(item->res)+1);
-    Evas_Object *icon = elm_icon_add(obj);
-    sprintf(name, PHOTOS_PATH "/%s/%s", item->par->jid, item->res);
-    elm_icon_file_set(icon, name, NULL);
-    evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
-    free(name);
-    return icon;
   }
   return NULL;
 }
@@ -615,36 +620,76 @@ static void roster_reload(Widget_Data *wd, ikspak *pak){
   }
 }
 
+#include<openssl/sha.h>
+
 static void check_status_photo(Widget_Data *wd, ikspak *pak){
-  iks *x=iks_find_with_attrib (pak->x, "x", "xmlns", IKS_NS_VCARD ":x:update");
-  if(!x)return;
-  char *new_sha=iks_find_cdata (pak->x, "photo");
-  char *name=malloc(strlen(PHOTOS_PATH)+1+strlen(pak->from->full));
+  char *new_sha=iks_find_cdata(iks_find_with_attrib(pak->x, "x", "xmlns", IKS_NS_VCARD ":x:update"), "photo");
+  if(!new_sha)return;
+  
+  printf(">> new sha: [%s]\n", new_sha);
+  char path[strlen(PHOTOS_PATH)+1+strlen(pak->from->partial)+1];
+  sprintf(path, PHOTOS_PATH "/%s", pak->from->partial);
   
   struct stat st;
-  if(0==stat(name, &st) && st.st_size>0){ // if photo in cache, check it for update
+  if(0==stat(path, &st) && st.st_size>0){ // if photo in cache, check it for update
     unsigned char data[st.st_size];
-    int fd=open(name, O_RDONLY);
+    int fd=open(path, O_RDONLY);
     if(fd){
       if(read(fd, data, st.st_size)==st.st_size){
-	char old_sha[40];
+	char old_sha[41];
+	old_sha[40]='\0';
 	iksha* sha=iks_sha_new();
 	close(fd);
+	/*
 	iks_sha_hash(sha, data, st.st_size, 1);
 	iks_sha_print(sha, old_sha);
-	iks_sha_reset(sha);
-	if(!memcmp(new_sha, old_sha, st.st_size)){
+	iks_sha_delete(sha);
+	*/
+	int i;
+	unsigned char hash[20];
+	SHA1(data, st.st_size, hash);
+	for (i=0; i<20; i++) {
+	  sprintf(old_sha+i*2, "%02x", hash[i]);
+        }
+	printf(">> old sha: [%s]\n", old_sha);
+	if(!memcmp(new_sha, old_sha, 40)){
 	  return;
 	}
       }
     }
   }
   
-  jabber_req_vcard(wd->jabber, pak->from->partial);
+  jabber_vcard_req(wd->jabber, pak->from->partial);
 }
 
 static void update_status_photo(Widget_Data *wd, ikspak *pak){
-  //pak->from;
+  const char *from=pak->from->partial;
+  char path[strlen(PHOTOS_PATH)+1+strlen(from)+1];
+  sprintf(path, PHOTOS_PATH "/%s", from);
+  
+  const char *buf=iks_find_cdata(iks_find(iks_find(pak->x, "vCard"), "PHOTO"), "BINVAL");
+  if(!buf){
+    printf(">> photo for %s not exists in vcard!\n", from);
+    return;
+  }
+  
+  int fd=creat(path, 0644);
+  if(!fd){
+    printf(">> error opening file %s for write!\n", path);
+    return;
+  }
+  
+  char data[strlen(buf)];
+  size_t len=base64_decode(buf, data, strlen(buf));
+  if(write(fd, data, len)==len) printf(">> OK!\n");
+  close(fd);
+  
+  printf(">> photo for %s cached!\n", from);
+  
+  Roster_Item_Jid *jid_item=item_jid_fnd(wd, from);
+  if(!jid_item)return;
+  
+  item_jid_upd(jid_item);
 }
 
 static void roster_status(Widget_Data *wd, ikspak *pak){

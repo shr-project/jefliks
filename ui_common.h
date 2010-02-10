@@ -39,6 +39,8 @@
 #define EET_CONF_FILE CONFIG_PATH "/" "config.eet"
 #endif
 
+void check_dir(const char* dir);
+
 #ifdef TEST_WIDGET_MODE
 #define TEST_WIDGET(name, code, post)					\
   static void test_win_del(void *data, Evas_Object *obj,		\

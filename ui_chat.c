@@ -30,7 +30,7 @@ typedef struct _Chat_Inst Chat_Inst;
 
 struct _Chat_Inst{ /* Chat Instance */
   Widget_Data *wd;
-  Evas_Object *box /* chat object */, *que /* messages queue */, *scroll /* messages queue */, *input /* input area */;
+  Evas_Object *box /* chat object */, *que /* messages queue */, *scroll /* messages queue */, *input /* input area */, *photo;
   Elm_Hoversel_Item *itm;
   char *jid; // jid/res
   char autoscroll:1;
@@ -124,7 +124,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
   Chat_Inst *chat=inst_fnd(wd, jid);
   
   if(jid && !chat){
-    Evas_Object *box, *scroll, *que, *input;
+    Evas_Object *box, *scroll, *que, *input, *photo;
     
     chat=malloc(sizeof(Chat_Inst));
     memset(chat, 0, sizeof(Chat_Inst));
@@ -175,6 +175,13 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     evas_object_size_hint_padding_set(input, 0.1, 0.1, 0.0, 0.0);
     evas_object_hide(input);
     
+    /* User Photo */
+    char *tmp=strchr(jid, '/');
+    if(tmp)*tmp='\0';
+    photo = elm_jabber_photo_add(box, jid);
+    if(tmp)*tmp='/';
+    chat->photo = photo;
+    
     /* Adds Item in Chat Switcher */
     chat->itm=elm_hoversel_item_add(wd->chats, jid, NULL, 0, _chat_sel_hook, chat);
     
@@ -196,6 +203,7 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   
   repl=elm_bubble_add(wd->parent);
   elm_bubble_label_set(repl, dir?"you":chat->jid);
+  if(!dir && chat->photo)elm_bubble_corner_set(repl, chat->photo);
   
   switch(1){
     char buf[64];

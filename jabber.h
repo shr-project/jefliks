@@ -84,7 +84,7 @@ enum _Jabber_Subscript {
 
 void jabber_roster_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data);
 
-int jabber_req_vcard(Jabber_Session *sess, const char *jid);
+int jabber_vcard_req(Jabber_Session *sess, const char *jid);
 
 void jabber_chat_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data);
 
