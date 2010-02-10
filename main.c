@@ -1,7 +1,7 @@
 #include<Elementary.h>
 
+#include"ui_common.h"
 #include"ui_main.h"
-
 
 /* this is your elementary main function - it MUSt be called IMMEDIATELY
  * after elm_init() and MUSt be passed argc and argv, and MUST be called
@@ -32,13 +32,24 @@ main_win_theme(){
 }
 */
 
-
 #define DBGMSG(m) printf("DBG: " #m "..\n");
+
+static void check_dir(const char* dir){
+  struct stat st;
+  if(stat(dir, &st)){
+    mkdir(dir, 0755);
+  }
+}
 
 #ifndef TEST_WIDGET_MODE
 int main(int argc, char **argv){
   Evas_Object *wn, *bg, *fm;
-  //const char *tf;
+  
+  char *home=getenv("HOME");
+  chdir(home);
+  
+  check_dir(CONFIG_PATH);
+  check_dir(PHOTOS_PATH);
   
   eet_init();
   /* put ere any init specific to this app like parsing args etc. */

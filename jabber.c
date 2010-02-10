@@ -169,6 +169,14 @@ on_presence (Jabber_Session *sess, ikspak *pak) {
   return IKS_FILTER_EAT;
 }
 
+static int
+on_vcard (Jabber_Session *sess, ikspak *pak) {
+  if(sess->roster_cb.func){
+    sess->roster_cb.func((void*)sess->roster_cb.data, sess, (void*)pak);
+  }
+  return IKS_FILTER_EAT;
+}
+
 /* Roster Handling }}} */
 
 int jabber_chat_send(Jabber_Session *sess, const char *to, const char *body){
@@ -201,6 +209,25 @@ int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc){
 
 char jabber_hastls(){
   return iks_has_tls();
+}
+
+int jabber_req_vcard(Jabber_Session *sess, const char *jid){
+  if(!sess || !jid || sess->state!=JABBER_CONNECTED)return 0;
+  iks *x=iks_make_iq(IKS_TYPE_GET, IKS_NS_VCARD);
+  iks_insert_attrib(x, "id", "vc2");
+  iks_insert_attrib(x, "to", jid);
+  iks_insert_attrib(x, "from", sess->acc->full);
+  iks_insert_attrib(iks_insert(x, "vCard"), "xmlns", IKS_NS_VCARD);
+  iks_send(sess->prs, x);
+  iks_delete(x);
+  return 1;
+}
+
+int jabber_iks_send(Jabber_Session *sess, const void *data){
+  iks *x=(iks*)data;
+  if(sess->state!=JABBER_CONNECTED)return 0;
+  iks_send(sess->prs, x);
+  return 1;
 }
 
 /* connection time outs if nothing comes for this much seconds */
@@ -325,6 +352,11 @@ setup_filter (Jabber_Session *sess) {
   iks_filter_add_rule (sess->filter, (iksFilterHook *)on_chat, sess,
 		       IKS_RULE_TYPE, IKS_PAK_MESSAGE,
 		       IKS_RULE_SUBTYPE, IKS_TYPE_CHAT,
+		       IKS_RULE_DONE);
+  iks_filter_add_rule (sess->filter, (iksFilterHook *)on_vcard, sess,
+		       IKS_RULE_TYPE, IKS_PAK_IQ,
+		       IKS_RULE_SUBTYPE, IKS_TYPE_RESULT,
+		       IKS_RULE_ID, "vc2",
 		       IKS_RULE_DONE);
 }
 

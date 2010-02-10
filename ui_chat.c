@@ -30,9 +30,11 @@ typedef struct _Chat_Inst Chat_Inst;
 
 struct _Chat_Inst{ /* Chat Instance */
   Widget_Data *wd;
-  Evas_Object *box /* chat object */, *que /* messages queue */, *scroll /* messages queue */, *input /* input area */, *area;
+  Evas_Object *box /* chat object */, *que /* messages queue */, *scroll /* messages queue */, *input /* input area */;
   Elm_Hoversel_Item *itm;
   char *jid; // jid/res
+  char autoscroll:1;
+  char needscroll:1;
 };
 
 struct _Widget_Data{
@@ -95,29 +97,34 @@ _chat_sel_hook(void *data, Evas_Object *obj, void *event_info){
 static void // auto scrolling to last message
 _que_resize(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Chat_Inst *chat=data;
-  Evas_Coord cw, ch, rx, ry, rw, rh;
-  elm_scroller_child_size_get(chat->scroll, &cw, &ch);
-  elm_scroller_region_get(chat->scroll, &rx, &ry, &rw, &rh);
-  elm_scroller_region_bring_in(chat->scroll, rx, ry+(ch-rh), rw, rh);
+  if(chat->autoscroll){
+    Evas_Coord cw, ch, rx, ry, rw, rh;
+    elm_scroller_child_size_get(chat->scroll, &cw, &ch);
+    elm_scroller_region_get(chat->scroll, &rx, &ry, &rw, &rh);
+    elm_scroller_region_bring_in(chat->scroll, rx, ry+(ch-rh), rw, rh);
+  }else{
+    chat->needscroll=1;
+  }
 }
 
 static void // disables autoscrolling when user start scroll messages manually
 _scroll_drag_start_hook(void *data, Evas_Object *obj, void *event_info){
   Chat_Inst *chat=data;
-  evas_object_event_callback_del(chat->que, EVAS_CALLBACK_RESIZE, _que_resize);
+  chat->autoscroll=0;
 }
 
 static void // enables autoscrolling when user stop scroll messages manually
 _scroll_drag_stop_hook(void *data, Evas_Object *obj, void *event_info){
   Chat_Inst *chat=data;
-  evas_object_event_callback_add(chat->que, EVAS_CALLBACK_RESIZE, _que_resize, chat);
+  chat->autoscroll=1;
+  if(chat->needscroll)_que_resize(data, NULL, obj, event_info);
 }
 
 static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
   Chat_Inst *chat=inst_fnd(wd, jid);
   
   if(jid && !chat){
-    Evas_Object *box, *scroll, *que, *input, *area, *submit, *cancel;
+    Evas_Object *box, *scroll, *que, *input;
     
     chat=malloc(sizeof(Chat_Inst));
     memset(chat, 0, sizeof(Chat_Inst));
@@ -126,10 +133,13 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     
     chat->wd=wd;
     chat->jid=strdup(jid);
+    chat->autoscroll=1;
+    chat->needscroll=0;
     
     /* Page Box */
     box = elm_box_add(wd->parent);
     chat->box = box;
+    elm_object_scale_set(chat->box, 0.8);
     evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
     evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
     elm_pager_content_push(wd->pager, box);
@@ -156,49 +166,14 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     elm_box_pack_end(box, scroll);
     evas_object_show(scroll);
     
-    
-    /* Input Area Box */
-    /*
-    area = elm_box_add(box);
-    chat->area = area;
-    elm_box_horizontal_set(area, 1);
-    evas_object_size_hint_weight_set(area, EVAS_HINT_EXPAND, 0.0);
-    evas_object_size_hint_align_set(area, EVAS_HINT_FILL, 1.0);
-    evas_object_hide(area);
-    */
-    
-    /* Hide Input Button */
-    /*
-    cancel = elm_button_add(box);
-    elm_button_label_set(cancel, _("X"));
-    //evas_object_smart_callback_add(cancel, "clicked", _cancel_hook, wd);
-    evas_object_size_hint_weight_set(cancel, 0.0, 0.0);
-    evas_object_size_hint_align_set(cancel, 0.0, 0.0);
-    elm_box_pack_end(area, cancel);
-    evas_object_show(cancel);
-    */
-    
     /* Input Entry */
     input = elm_entry_add(box);
     chat->input = input;
     /*elm_entry_single_line_set(input, EINA_TRUE);*/
     evas_object_size_hint_weight_set(input, EVAS_HINT_EXPAND, 0.0);
     evas_object_size_hint_align_set(input, EVAS_HINT_FILL, 1.0);
-    /*elm_box_pack_end(area, input);*/
     evas_object_size_hint_padding_set(input, 0.1, 0.1, 0.0, 0.0);
-    /*elm_win_resize_object_add(wd->parent, input);*/
     evas_object_hide(input);
-    
-    /* Hide Input Button */
-    /*
-    submit = elm_button_add(box);
-    elm_button_label_set(submit, _("Send"));
-    //evas_object_smart_callback_add(submit, "clicked", _submit_hook, wd);
-    evas_object_size_hint_weight_set(submit, 0.0, 0.0);
-    evas_object_size_hint_align_set(submit, 0.0, 0.0);
-    elm_box_pack_end(area, submit);
-    evas_object_show(submit);
-    */
     
     /* Adds Item in Chat Switcher */
     chat->itm=elm_hoversel_item_add(wd->chats, jid, NULL, 0, _chat_sel_hook, chat);

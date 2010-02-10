@@ -27,8 +27,16 @@
 #define _(...) __VA_ARGS__
 #endif
 
+#ifndef CONFIG_PATH
+#define CONFIG_PATH "." NAME
+#endif
+
+#ifndef PHOTOS_PATH
+#define PHOTOS_PATH CONFIG_PATH "/" "photos"
+#endif
+
 #ifndef EET_CONF_FILE
-#define EET_CONF_FILE "." NAME ".eet"
+#define EET_CONF_FILE CONFIG_PATH "/" "config.eet"
 #endif
 
 #ifdef TEST_WIDGET_MODE

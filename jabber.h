@@ -70,6 +70,7 @@ int jabber_disconnect(Jabber_Session *sess);
 Jabber_State jabber_state(Jabber_Session *sess);
 int jabber_status_set(Jabber_Session *sess, Jabber_Show show, const char *desc);
 int jabber_chat_send(Jabber_Session *sess, const char *to, const char *body);
+int jabber_iks_send(Jabber_Session *sess, const void *x);
 
 /* Roster handling */
 
@@ -82,6 +83,8 @@ enum _Jabber_Subscript {
 };
 
 void jabber_roster_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data);
+
+int jabber_req_vcard(Jabber_Session *sess, const char *jid);
 
 void jabber_chat_callback_set(Jabber_Session *sess, Jabber_Callback func, const void *data);
 

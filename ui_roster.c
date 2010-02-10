@@ -27,12 +27,17 @@
 #include"ui_common.h"
 #include"ui_roster.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
   Evas_Object *list;
   Jabber_Session *jabber;
   Eina_List *jids;
   char *selected;
+  char photos:1;
 };
 
 static void
@@ -230,54 +235,11 @@ static const Elm_Genlist_Item_Class _item_jid_class={
   }
 };
 
-/*
-static Elm_Genlist_Item *item_jid_get(Widget_Data *wd, const char *jid){
-  Elm_Genlist_Item *it;
-  
-  for(it=elm_genlist_first_item_get(wd->list); it; it=elm_genlist_item_next_get(it)){
-    const Roster_Item_Jid *item=elm_genlist_item_data_get(it);
-    if(item->type!=ROSTER_ITEM_JID)continue;
-    if(!strcmp(item->jid, jid))return it;
-  }
-  
-  return NULL;
-}
-
-static Elm_Genlist_Item *item_jid_set(Widget_Data *wd, const char *jid, const char *sub){
-  Elm_Genlist_Item *it=item_jid_get(wd, jid);
-  Roster_Item_Jid *item;
-  
-  if(it){
-    item=(Roster_Item_Jid *)elm_genlist_item_data_get(it);
-  }else{
-    item=malloc(sizeof(Roster_Item_Jid));
-    
-    item->type=ROSTER_ITEM_JID;
-    item->wd=wd;
-    item->jid=strdup(jid);
-    item->res=NULL;
-    item->sub=0;
-  }
-  
-  if(it){
-    elm_genlist_item_update(it);
-  }else{
-    it=elm_genlist_item_append(wd->list, &_item_jid_class, item, NULL, ELM_GENLIST_ITEM_SUBITEMS,
-			       (GenlistItemSelectFunc)_item_jid_sel, item);
-  }
-  
-  return it;
-}
-*/
-
 /* Class: Item_Jid }}} */
 
 /* Class: Item_Res {{{ */
 
 static void _item_res_del(Roster_Item_Res *item, Evas_Object *obj) {
-  //free(item->res);
-  //free(item->desc);
-  //free(item);
 }
 
 static char *_item_res_label_get(const Roster_Item_Res *item, Evas_Object *obj, const char *part) {
@@ -303,6 +265,15 @@ static Evas_Object *_item_res_icon_get(const Roster_Item_Res *item, Evas_Object 
       return icon;
     }
   }
+  if(!strcmp(part, "elm.swallow.icon.end")){
+    char *name=malloc(strlen(PHOTOS_PATH)+1+strlen(item->par->jid)+1+strlen(item->res)+1);
+    Evas_Object *icon = elm_icon_add(obj);
+    sprintf(name, PHOTOS_PATH "/%s/%s", item->par->jid, item->res);
+    elm_icon_file_set(icon, name, NULL);
+    evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+    free(name);
+    return icon;
+  }
   return NULL;
 }
 
@@ -326,86 +297,6 @@ static const Elm_Genlist_Item_Class _item_res_class={
     .del       = (GenlistItemDelFunc)_item_res_del
   }
 };
-
-/*
-static Elm_Genlist_Item *item_res_get(Widget_Data *wd, const char *jid, const char *res){
-  Elm_Genlist_Item *it;//=item_jid_get(wd, jid);
-  
-  //if(!it)return NULL;
-  for(it=elm_genlist_first_item_get(wd->list); it; it=elm_genlist_item_next_get(it)){
-    const Roster_Item_Res *item=elm_genlist_item_data_get(it);
-    if(item->type!=ROSTER_ITEM_RES)continue;
-    if(item->par && item->par->jid && !strcmp(item->par->jid, jid)){
-      return it;
-    }
-  }
-  
-  return NULL;
-}
-
-static void items_print(Widget_Data *wd){
-  Elm_Genlist_Item *it;
-  
-  printf("ENTRY {\n");
-  for(it=elm_genlist_first_item_get(wd->list); it; it=elm_genlist_item_next_get(it)){
-    const Roster_Item_Jid *item=elm_genlist_item_data_get(it);
-    if(item->type==ROSTER_ITEM_RES)printf(" >> RES slf:0x%x par:0x%x <<\n", it, elm_genlist_item_parent_get(it));
-    if(item->type==ROSTER_ITEM_JID)printf(" >> JID slf:0x%x par:0x%x <<\n", it, elm_genlist_item_parent_get(it));
-  }
-  printf("}\n");
-}
-
-static Elm_Genlist_Item *item_res_set(Widget_Data *wd, const char* jid, const char *res, int pri, Jabber_Show show, const char *desc){
-  Elm_Genlist_Item *pr=item_jid_get(wd, jid);
-  if(!pr)return NULL;
-  
-  Roster_Item_Jid *pr_item=(Roster_Item_Jid *)elm_genlist_item_data_get(pr);
-  if(!pr_item)return NULL;
-  
-  Elm_Genlist_Item *it=item_res_get(wd, jid, res);
-  Roster_Item_Res *item;
-  
-  if(it){
-    printf(">> Resource Upd\n");
-    item=(Roster_Item_Res *)elm_genlist_item_data_get(it);
-  }else{
-    printf(">> Resource Add\n");
-    item=malloc(sizeof(Roster_Item_Res));
-    
-    item->type=ROSTER_ITEM_RES;
-    item->wd=wd;
-    item->res=strdup(res);
-    item->par=pr_item;
-    
-    item->desc=NULL;
-  }
-  
-  item->pri=pri;
-  item->show=show;
-  free(item->desc);
-  item->desc=strdup(desc);
-  
-  if(!pr_item->res || pr_item->res->pri < item->pri){ // update jid entry
-    pr_item->res=item;
-  }
-  elm_genlist_item_update(pr);
-  
-  // show resource
-  if(it){
-    elm_genlist_item_update(it);
-  }else{
-    it=elm_genlist_item_append(wd->list, &_item_res_class, item, pr, ELM_GENLIST_ITEM_NONE,
-			       (GenlistItemSelectFunc)_item_res_sel, item);
-    if(!elm_genlist_item_expanded_get(pr)){
-      evas_object_hide((Evas_Object*)elm_genlist_item_object_get(it));
-    }
-  }
-  
-  items_print(wd);
-  
-  return it;
-}
-*/
 
 /* Class: Item_Res }}} */
 
@@ -724,6 +615,38 @@ static void roster_reload(Widget_Data *wd, ikspak *pak){
   }
 }
 
+static void check_status_photo(Widget_Data *wd, ikspak *pak){
+  iks *x=iks_find_with_attrib (pak->x, "x", "xmlns", IKS_NS_VCARD ":x:update");
+  if(!x)return;
+  char *new_sha=iks_find_cdata (pak->x, "photo");
+  char *name=malloc(strlen(PHOTOS_PATH)+1+strlen(pak->from->full));
+  
+  struct stat st;
+  if(0==stat(name, &st) && st.st_size>0){ // if photo in cache, check it for update
+    unsigned char data[st.st_size];
+    int fd=open(name, O_RDONLY);
+    if(fd){
+      if(read(fd, data, st.st_size)==st.st_size){
+	char old_sha[40];
+	iksha* sha=iks_sha_new();
+	close(fd);
+	iks_sha_hash(sha, data, st.st_size, 1);
+	iks_sha_print(sha, old_sha);
+	iks_sha_reset(sha);
+	if(!memcmp(new_sha, old_sha, st.st_size)){
+	  return;
+	}
+      }
+    }
+  }
+  
+  jabber_req_vcard(wd->jabber, pak->from->partial);
+}
+
+static void update_status_photo(Widget_Data *wd, ikspak *pak){
+  //pak->from;
+}
+
 static void roster_status(Widget_Data *wd, ikspak *pak){
   Jabber_Show show=JABBER_UNDEFINED;
   int pri;
@@ -748,6 +671,9 @@ static void roster_status(Widget_Data *wd, ikspak *pak){
   tmp = iks_find_cdata (pak->x, "status");
   if(!tmp)tmp="";
   
+  /* get photo */
+  check_status_photo(wd, pak);
+  
   item_res_set(wd, pak->from->partial, pak->from->resource, pri, show, tmp);
 }
 
@@ -762,6 +688,9 @@ _roster_event_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
     if(pak->subtype==IKS_TYPE_RESULT){
       if(!strcmp(pak->id, "roster")){
 	roster_reload(wd, pak);
+      }
+      if(!strcmp(pak->id, "vc2")){
+	update_status_photo(wd, pak);
       }
     }
   }
