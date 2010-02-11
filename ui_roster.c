@@ -215,7 +215,7 @@ static Evas_Object *_item_jid_icon_get(const Roster_Item_Jid *item, Evas_Object 
     
     if(name){
       Evas_Object *icon = elm_icon_add(obj);
-      elm_icon_file_set(icon, "./" NAME ".edj", name);
+      elm_icon_file_set(icon, THEME_PATH, name);
       evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
       return icon;
     }
@@ -277,7 +277,7 @@ static Evas_Object *_item_res_icon_get(const Roster_Item_Res *item, Evas_Object 
     const char *name=icon_by_show(item->show);
     if(name){
       Evas_Object *icon = elm_icon_add(obj);
-      elm_icon_file_set(icon, "./" NAME ".edj", name);
+      elm_icon_file_set(icon, THEME_PATH, name);
       evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
       return icon;
     }

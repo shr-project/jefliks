@@ -31,6 +31,11 @@
 #define CONFIG_PATH "." NAME
 #endif
 
+#ifndef THEME_PATH
+#define THEME_PATH "" NAME ".edj"
+//#define THEME_PATH "/usr/share" "/" NAME "/" "default.edj"
+#endif
+
 #ifndef PHOTOS_PATH
 #define PHOTOS_PATH CONFIG_PATH "/" "photos"
 #endif

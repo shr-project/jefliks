@@ -64,7 +64,14 @@ _root_show(void *data, Evas *e, Evas_Object *obj, void *event_info){
 }
 
 static void
-_chat_hook(void *data, Evas_Object *obj, void *event_info){
+_all_chats_hook(void *data, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  evas_object_show(wd->chat);
+  evas_object_hide(wd->root);
+}
+
+static void
+_chat_with_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   elm_jabber_chat_enter(wd->chat, elm_jabber_roster_selected(wd->roster));
   evas_object_show(wd->chat);
@@ -101,14 +108,15 @@ _about_hook(void *data, Evas_Object *obj, void *event_info){
 struct {
   Jabber_Show status;
   const char *title;
+  const char *icon;
 } status_list[] = {
-  { JABBER_ONLINE, _("Online") },
-  { JABBER_CHAT, _("Chat") },
-  { JABBER_AWAY, _("Away") },
-  { JABBER_XA, _("Extended Away") },
-  { JABBER_DND, _("Don't Disturb") },
-  { JABBER_OFFLINE, _("Offline") },
-  { 0, NULL }
+  { JABBER_ONLINE, _("Online"), "status/available" },
+  { JABBER_CHAT, _("Chat"), "status/chat" },
+  { JABBER_AWAY, _("Away"), "status/away" },
+  { JABBER_XA, _("XA"), "status/xa" }, // Extended Away
+  { JABBER_DND, _("DND"), "status/dnd" }, // Don't Disturb
+  { JABBER_OFFLINE, _("Offline"), "status/unavailable" },
+  { 0, NULL, NULL }
 };
 
 static Jabber_Show status_by_title(const char *title){
@@ -126,6 +134,16 @@ static const char *title_by_status(Jabber_Show status){
   for(i=0; status_list[i].title; i++){
     if(status==status_list[i].status){
       return status_list[i].title;
+    }
+  }
+  return NULL;
+}
+
+static const char *icon_by_status(Jabber_Show status){
+  int i;
+  for(i=0; status_list[i].icon; i++){
+    if(status==status_list[i].icon){
+      return status_list[i].icon;
     }
   }
   return NULL;
@@ -155,14 +173,14 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
 
 static void
 _state_change_hook(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
-  const char *title=_("Undefined..");
+  const char *title=_("----");
   
   switch(state){
   case JABBER_DISCONNECTED:
     title=title_by_status(JABBER_OFFLINE);
     break;
   case JABBER_CONNECTING:
-    title=_("Connecting..");
+    title=_("....");
     break;
   case JABBER_CONNECTED:
     title=title_by_status(wd->selected_status);
@@ -243,7 +261,7 @@ _error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
 
 Evas_Object *elm_jabber_main(Evas_Object *parent){
   Widget_Data *wd;
-  Evas_Object *box, *buttons, *status, *actions, *roster, *chat;
+  Evas_Object *box, *buttons, *status, *actions, *talks, *roster, *chat;
   
   wd = malloc(sizeof(Widget_Data));
   wd->jabber=jabber_new();
@@ -296,6 +314,19 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   elm_box_pack_end(buttons, status);
   evas_object_show(status);
   
+  /* Talks */
+  talks = elm_hoversel_add(parent);
+  elm_hoversel_label_set(talks, _("Talks"));
+  elm_hoversel_hover_parent_set(talks, box);
+  evas_object_size_hint_weight_set(talks, 1.0, 1.0);
+  evas_object_size_hint_align_set(talks, -1.0, 0.0);
+  
+  elm_hoversel_item_add(talks, _("Chat With"), NULL, 0, _chat_with_hook, wd);
+  elm_hoversel_item_add(talks, _("All Chats"), NULL, 0, _all_chats_hook, wd);
+  
+  elm_box_pack_end(buttons, talks);
+  evas_object_show(talks);
+  
   /* Actions */
   actions = elm_hoversel_add(parent);
   elm_hoversel_label_set(actions, _("Actions"));
@@ -303,7 +334,6 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_size_hint_weight_set(actions, 1.0, 1.0);
   evas_object_size_hint_align_set(actions, -1.0, 0.0);
   
-  elm_hoversel_item_add(actions, _("Chat"), NULL, 0, _chat_hook, wd);
   elm_hoversel_item_add(actions, _("Settings"), NULL, 0, _config_hook, wd);
   elm_hoversel_item_add(actions, _("About"), NULL, 0, _about_hook, wd);
   elm_hoversel_item_add(actions, _("Exit"), NULL, 0, _exit_hook, NULL);

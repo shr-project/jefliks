@@ -141,7 +141,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     /* Page Box */
     box = elm_box_add(wd->parent);
     chat->box = box;
-    elm_object_scale_set(chat->box, 0.7);
+    //elm_object_scale_set(chat->box, 0.7);
     evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
     evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
     elm_pager_content_push(wd->pager, box);
@@ -164,6 +164,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     evas_object_size_hint_align_set(scroll, EVAS_HINT_FILL, EVAS_HINT_FILL);
     evas_object_smart_callback_add(scroll, "scroll,drag,start", _scroll_drag_start_hook, chat);
     evas_object_smart_callback_add(scroll, "scroll,drag,stop", _scroll_drag_stop_hook, chat);
+    evas_object_event_callback_add(scroll, EVAS_CALLBACK_RESIZE, _que_resize, chat);
     elm_scroller_content_set(scroll, que);
     elm_box_pack_end(box, scroll);
     evas_object_show(scroll);
@@ -199,11 +200,13 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   Evas_Object *repl, *body, *photo;
   
   body=elm_anchorblock_add(wd->parent);
+  elm_object_scale_set(body, 1.0);
   elm_anchorblock_text_set(body, text);
   /*elm_anchorblock_hover_style_set(body, "popout");*/
   /*elm_anchorblock_hover_parent_set(body, wd->parent);*/
   
   repl=elm_bubble_add(wd->parent);
+  elm_object_scale_set(repl, 0.8);
   elm_bubble_label_set(repl, dir?"you":chat->jid);
   if(!dir){
     photo = elm_jabber_photo_add(repl, chat->jid);
@@ -215,7 +218,8 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
     time_t now;
     struct tm t;
   case 1:
-#define default_timefmt "%Y-%m-%d %H:%M:%S"
+    //#define default_timefmt "%Y-%m-%d %H:%M:%S"
+    #define default_timefmt "%H:%M:%S"
     memset(&t, 0, sizeof(t));
     now=time(&now);
     if(!localtime_r(&now, &t))break;
@@ -351,7 +355,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   /* Chats */
   chats = elm_hoversel_add(parent);
   wd->chats=chats;
-  elm_object_scale_set(chats, 0.7);
+  elm_object_scale_set(chats, 0.9);
   elm_hoversel_label_set(chats, _("Chats"));
   elm_hoversel_hover_parent_set(chats, box);
   evas_object_size_hint_weight_set(chats, EVAS_HINT_EXPAND, 0.0);
@@ -419,7 +423,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   /* Close/Cancel Button */
   end_cancel = elm_button_add(parent);
   wd->end_cancel = end_cancel;
-  elm_button_label_set(end_cancel, _("Close"));
+  elm_button_label_set(end_cancel, _("End"));
   //elm_button_autorepeat_set(end_cancel, 0);
   evas_object_smart_callback_add(end_cancel, "clicked", _end_cancel_hook, wd);
   evas_object_size_hint_weight_set(end_cancel, 1.0, 0.0);
