@@ -185,6 +185,9 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     chat->itm=elm_hoversel_item_add(wd->chats, jid, NULL, 0, _chat_sel_hook, chat);
     
     wd->insts=eina_list_append(wd->insts, chat);
+    
+    /* Show on top each newest chat */
+    inst_sel(wd, chat);
   }
   
   return chat;
