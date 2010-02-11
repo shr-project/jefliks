@@ -141,7 +141,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     /* Page Box */
     box = elm_box_add(wd->parent);
     chat->box = box;
-    elm_object_scale_set(chat->box, 0.8);
+    elm_object_scale_set(chat->box, 0.7);
     evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
     evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
     elm_pager_content_push(wd->pager, box);
@@ -351,10 +351,11 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   /* Chats */
   chats = elm_hoversel_add(parent);
   wd->chats=chats;
+  elm_object_scale_set(chats, 0.7);
   elm_hoversel_label_set(chats, _("Chats"));
   elm_hoversel_hover_parent_set(chats, box);
-  evas_object_size_hint_weight_set(chats, 0.0, 0.0);
-  evas_object_size_hint_align_set(chats, -1.0, 0.0);
+  evas_object_size_hint_weight_set(chats, EVAS_HINT_EXPAND, 0.0);
+  evas_object_size_hint_align_set(chats, EVAS_HINT_FILL, 0.0);
   elm_box_pack_end(box, chats);
   evas_object_show(chats);
   

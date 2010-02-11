@@ -80,7 +80,7 @@ _config_hide(void *data, Evas *e, Evas_Object *obj, void *event_info){
 
 static void
 _config_hook(void *data, Evas_Object *obj, void *event_info){
-  Widget_Data *wd=data;  
+  Widget_Data *wd=data;
   Evas_Object *settings = elm_jabber_config_add(wd->parent);
   evas_object_size_hint_weight_set(settings, 1.0, 1.0);
   elm_win_resize_object_add(wd->parent, settings);
