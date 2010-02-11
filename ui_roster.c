@@ -193,9 +193,12 @@ static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, 
 }
 
 Evas_Object *elm_jabber_photo_add(Evas_Object *obj, const char *jid){
-  char path[strlen(PHOTOS_PATH)+1+strlen(jid)+1];
+  char *sep=strchr(jid, '/');
+  char path[strlen(PHOTOS_PATH)+1+strlen(jid)-(sep?strlen(sep):0)+1];
   Evas_Object *icon = elm_icon_add(obj);
-  sprintf(path, PHOTOS_PATH "/%s", jid);
+  strcpy(path, PHOTOS_PATH);
+  strcat(path, "/");
+  strncat(path, jid, sep?(sep-jid):strlen(jid));
   elm_icon_file_set(icon, path, NULL);
   evas_object_size_hint_aspect_set(icon, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
   return icon;
@@ -639,7 +642,7 @@ static void check_status_photo(Widget_Data *wd, ikspak *pak){
       old_sha[40]='\0';
       if(read(fd, old_sha, 40)==40){
 	close(fd);
-	
+	printf(">> readed old sha from: %s\n", path_hash);
 	printf(">> old sha: [%s]\n", old_sha);
 	if(!memcmp(new_sha, old_sha, 40)){
 	  return;

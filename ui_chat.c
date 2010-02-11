@@ -25,6 +25,8 @@
 
 #include"jabber.h"
 
+#include"ui_roster.h"
+
 typedef struct _Widget_Data Widget_Data;
 typedef struct _Chat_Inst Chat_Inst;
 
@@ -176,11 +178,8 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     evas_object_hide(input);
     
     /* User Photo */
-    char *tmp=strchr(jid, '/');
-    if(tmp)*tmp='\0';
     photo = elm_jabber_photo_add(box, jid);
-    if(tmp)*tmp='/';
-    chat->photo = photo;
+    chat->photo = photo?photo:NULL;
     
     /* Adds Item in Chat Switcher */
     chat->itm=elm_hoversel_item_add(wd->chats, jid, NULL, 0, _chat_sel_hook, chat);
@@ -194,7 +193,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
 static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - out */){
   if(!chat || !text)return;
   Widget_Data *wd=chat->wd;
-  Evas_Object *repl, *body;
+  Evas_Object *repl, *body, *photo;
   
   body=elm_anchorblock_add(wd->parent);
   elm_anchorblock_text_set(body, text);
@@ -203,7 +202,10 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   
   repl=elm_bubble_add(wd->parent);
   elm_bubble_label_set(repl, dir?"you":chat->jid);
-  if(!dir && chat->photo)elm_bubble_corner_set(repl, chat->photo);
+  if(!dir){
+    photo = elm_jabber_photo_add(repl, chat->jid);
+    if(photo) elm_bubble_icon_set(repl, photo);
+  }
   
   switch(1){
     char buf[64];
