@@ -1,23 +1,24 @@
 images {
  image: "status.png" COMP;
+ image: "logo.png" COMP;
 }
 
-#define ICON(n, x)						\
-  group { name: n;						\
-  min: 32 32;							\
-  max: 64 64;							\
+#define ICON(img, grp, sx, sy, ox, oy)				\
+  group { name: grp;						\
+  /*min: 32 32;*/						\
+  /*max: 64 64;*/						\
     parts {							\
-      part { name: "status";					\
+      part { name: "default";					\
       type: IMAGE;						\
 	description { state: "default" 0;			\
 	aspect: 1 1;						\
 	aspect_preference: BOTH;				\
 	  rel1 { relative: 0.0 0.0; offset:  0  0; }		\
 	  rel2 { relative: 1.0 1.0; offset: -1 -1; }		\
-	  image { normal: "status.png"; }			\
+	  image { normal: img; }				\
 	  fill {						\
-	    origin { relative: x 0; }				\
-	    size { relative: 6 1; }				\
+	    origin { relative: ox oy; }				\
+	    size { relative: sx sy; }				\
 	  }							\
 	}							\
       }								\
@@ -25,10 +26,11 @@ images {
   }
 
 collections {
-  ICON("status/unavailable", 0);
-  ICON("status/available", -1);
-  ICON("status/chat", -2);
-  ICON("status/away", -3);
-  ICON("status/xa", -4);
-  ICON("status/dnd", -5);
+  ICON("status.png", "status/unavailable", 6, 1, 0, 0);
+  ICON("status.png", "status/available", 6, 1, -1, 0);
+  ICON("status.png", "status/chat", 6, 1, -2, 0);
+  ICON("status.png", "status/away", 6, 1, -3, 0);
+  ICON("status.png", "status/xa", 6, 1, -4, 0);
+  ICON("status.png", "status/dnd", 6, 1, -5, 0);
+  ICON("logo.png", "logo", 1, 1, 0, 0);
 }

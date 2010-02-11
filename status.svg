@@ -16,12 +16,19 @@
    version="1.1"
    inkscape:version="0.47pre4 r22446"
    sodipodi:docname="status.svg"
-   inkscape:export-filename="/home/fenix/Development/efljab/jabelm/status.png"
+   inkscape:export-filename="/home/fenix/Development/efljab/jefliks/status.png"
    inkscape:export-xdpi="90.099998"
    inkscape:export-ydpi="90.099998"
    style="display:inline">
   <defs
      id="defs4">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 24 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="288 : 24 : 1"
+       inkscape:persp3d-origin="144 : 16 : 1"
+       id="perspective91" />
     <linearGradient
        id="linearGradient3901">
       <stop
@@ -36,13 +43,13 @@
     <linearGradient
        id="linearGradient3812">
       <stop
-         style="stop-color:#989898;stop-opacity:1;"
+         style="stop-color:#535353;stop-opacity:1;"
          offset="0"
          id="stop3814" />
       <stop
          id="stop3820"
          offset="0.36741748"
-         style="stop-color:#747474;stop-opacity:1;" />
+         style="stop-color:#3e3e3e;stop-opacity:1;" />
       <stop
          style="stop-color:#000000;stop-opacity:1;"
          offset="1"
@@ -91,15 +98,15 @@
     <linearGradient
        id="linearGradient3812-8">
       <stop
-         style="stop-color:#cacaca;stop-opacity:1;"
+         style="stop-color:#d2d2d2;stop-opacity:1;"
          offset="0"
          id="stop3814-6" />
       <stop
          id="stop3820-3"
          offset="0.36741748"
-         style="stop-color:#adadad;stop-opacity:1;" />
+         style="stop-color:#bbbbbb;stop-opacity:1;" />
       <stop
-         style="stop-color:#5c5c5c;stop-opacity:1;"
+         style="stop-color:#767676;stop-opacity:1;"
          offset="1"
          id="stop3816-2" />
     </linearGradient>
@@ -275,9 +282,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="4"
-     inkscape:cx="179.22197"
-     inkscape:cy="12.133583"
+     inkscape:zoom="1"
+     inkscape:cx="20.76506"
+     inkscape:cy="5.4069236"
      inkscape:document-units="px"
      inkscape:current-layer="layer2"
      showgrid="false"
@@ -345,7 +352,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
