@@ -79,7 +79,6 @@ int main(int argc, char **argv){
   check_dir(CONFIG_PATH);
   check_dir(PHOTOS_PATH);
   
-  eet_init();
   /* put ere any init specific to this app like parsing args etc. */
   elm_init(argc, argv);
   
@@ -119,7 +118,6 @@ int main(int argc, char **argv){
   elm_run(); /* and run the program now  and handle all events etc. */
   /* if the mainloop that elm_run() runs exist - we exit the app */
   elm_shutdown(); /* clean up and shut down */
-  eet_shutdown();
   /* exit code */
   return 0;
 }

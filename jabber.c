@@ -588,7 +588,9 @@ int jabber_connect(Jabber_Session *sess){
 int jabber_disconnect(Jabber_Session *sess){
   if(sess->state!=JABBER_DISCONNECTED){
     DEBUG("Jabber Disconnecting..");
-    set_presence(sess, NULL, JABBER_UNAVAILABLE, NULL);
+    if(sess->state==JABBER_CONNECTED){
+      set_presence(sess, NULL, JABBER_UNAVAILABLE, NULL);
+    }
     set_state(JABBER_DISCONNECTED);
     _sess_reset(sess);
     return 1;

@@ -15,13 +15,14 @@ dynlibs = evas ecore edje ecore-evas eina-0 elementary
 stclibs = iksemel
 libs = $(dynlibs) $(stclibs)
 
-depends = $(shell $(patsubst %-strip,%-strings,$(STRIP)) $(name) | grep -v '^/' | grep '\.so')
+depend-libs = $(shell $(patsubst %-strip,%-strings,$(STRIP)) $(name) | grep -v '^/' | grep '\.so')
+depends = evas ecore edje ecore_evas eina libelementary-ver-pre-svn-05-0 libc6 libeet1
 
 prefix=$(DESTDIR)
 objects = $(sources:.c=.o)
 
-#debug=1
-#devel=1
+debug=1
+devel=1
 
 CFLAGS += -Wall $(shell pkg-config --cflags $(libs))
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
@@ -93,4 +94,4 @@ clean:
 	rm -f $(name) *.o *.bin *.elf *.edj *~ *.ipk *.desktop *.control
 
 s2n: all
-	scp $(name).elf $(name).edj root@kayo-neo:/home/root
+	scp $(name) $(name).edj root@kayo-neo:/home/root

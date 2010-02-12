@@ -120,28 +120,46 @@ _save_hook(void *data, Evas_Object *obj, void *event_info){
 
 Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   Widget_Data *wd;
-  Evas_Object *frame, *fbox, *box, *buttons, *close, *scroll, *tab;
+  Evas_Object *frame, *box, *buttons, *close, *scroll, *tab;
   
   wd = malloc(sizeof(Widget_Data));
   
-  frame = elm_frame_add(parent);
+  /* frame box */
+  frame = elm_box_add(parent);
   wd->frame=frame;
-  elm_frame_label_set(frame, _("Connection settings"));
+  evas_object_size_hint_weight_set(frame, 1.0, 1.0);
+  evas_object_size_hint_align_set(frame, -1.0, -1.0);
   evas_object_event_callback_add(frame, EVAS_CALLBACK_FREE, _del_hook, wd);
+  evas_object_show(frame);
   
-  box = elm_box_add(parent);
+  /* scroll in frame box */
+  scroll = elm_scroller_add(frame);
+  elm_scroller_bounce_set(scroll, 0.0, 0.0);
+  evas_object_size_hint_weight_set(scroll, 1.0, 1.0);
+  evas_object_size_hint_align_set(scroll, -1.0, -1.0);
+  elm_box_pack_end(frame, scroll);
+  evas_object_show(scroll);
+  
+  /* box with options */
+  box = elm_box_add(scroll);
+  /*
   evas_object_size_hint_weight_set(box, 1.0, 0.0);
+  evas_object_size_hint_align_set(box, -1.0, -1.0);
+  */
+  elm_scroller_content_set(scroll, box);
   evas_object_show(box);
   
 #if 1
 #define WRAP_FIELD(title, widget) {					\
     Evas_Object *field;							\
-    field = elm_frame_add(parent);					\
+    field = elm_frame_add(box);						\
     elm_frame_label_set(field, title);					\
     evas_object_size_hint_weight_set(field, 1.0, 0.0);			\
     evas_object_size_hint_align_set(field, -1.0, 0.0);			\
     elm_box_pack_end(box, field);					\
     elm_frame_content_set(field, widget);				\
+    evas_object_size_hint_weight_set(widget, 1.0, 0.0);			\
+    evas_object_size_hint_align_set(widget, -1.0, 0.0);			\
     evas_object_show(widget);						\
     evas_object_show(field);						\
   }
@@ -149,13 +167,13 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
 #if 0
 #define WRAP_FIELD(title, widget) {					\
     Evas_Object *hbox, *label;						\
-    hbox = elm_box_add(parent);						\
+    hbox = elm_box_add(box);						\
     elm_box_horizontal_set(hbox, 1);					\
     elm_box_homogenous_set(hbox, 1);					\
     evas_object_size_hint_weight_set(hbox, 1.0, 0.0);			\
     evas_object_size_hint_align_set(hbox, -1.0, 0.0);			\
     elm_box_pack_end(box, hbox);					\
-    label = elm_label_add(parent);					\
+    label = elm_label_add(box);						\
     elm_label_label_set(label, title);					\
     evas_object_size_hint_weight_set(label, 1.0, 0.0);			\
     evas_object_size_hint_align_set(label, -1.0, 0.0);			\
@@ -173,18 +191,18 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   elm_box_pack_end(box, widget);
 #endif
   
-  wd->jidres = elm_entry_add(parent);
+  wd->jidres = elm_entry_add(box);
   elm_entry_single_line_set(wd->jidres, EINA_TRUE);
   WRAP_FIELD(_("JID/Resource"), wd->jidres);
   
-  wd->passwd = elm_entry_add(parent);
+  wd->passwd = elm_entry_add(box);
   elm_entry_single_line_set(wd->passwd, EINA_TRUE);
   elm_entry_password_set(wd->passwd, EINA_TRUE);
   WRAP_FIELD(_("Password"), wd->passwd);
   
 #define WRAP_FIELD2(title, widget1, widget2) {		\
     Evas_Object *ibox;					\
-    ibox=elm_box_add(parent);				\
+    ibox=elm_box_add(box);				\
     elm_box_horizontal_set(ibox, 1);			\
     /*elm_box_homogenous_set(ibox, 1);*/		\
     evas_object_size_hint_weight_set(ibox, 1.0, 1.0);	\
@@ -194,13 +212,13 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     WRAP_FIELD(title, ibox);				\
   }
   
-  wd->server_enable = elm_check_add(parent);
+  wd->server_enable = elm_check_add(box);
   elm_check_label_set(wd->server_enable, "");
   evas_object_size_hint_weight_set(wd->server_enable, 0.0, 0.0);
   evas_object_size_hint_align_set(wd->server_enable, 0.0, 0.0);
   evas_object_show(wd->server_enable);
   
-  wd->server = elm_entry_add(parent);
+  wd->server = elm_entry_add(box);
   elm_entry_single_line_set(wd->server, EINA_TRUE);
   evas_object_size_hint_weight_set(wd->server, 1.0, 1.0);
   evas_object_size_hint_align_set(wd->server, -1.0, -1.0);
@@ -210,7 +228,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   WRAP_FIELD2(_("Server"), wd->server_enable, wd->server);
   
   /* Table for Checkboxes */
-  tab = elm_table_add(parent);
+  tab = elm_table_add(box);
   elm_table_homogenous_set(tab, 1);
   evas_object_size_hint_weight_set(tab, 1.0, 1.0);
   evas_object_size_hint_align_set(tab, -1.0, -1.0);
@@ -218,57 +236,45 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_show(tab);
   
   /* Use TLS */
-  wd->usetls = elm_check_add(parent);
+  wd->usetls = elm_check_add(box);
   elm_check_label_set(wd->usetls, _("Use TLS"));
-  evas_object_size_hint_align_set(wd->usetls, 0.0, 0.0);
+  evas_object_size_hint_align_set(wd->usetls, -1.0, 0.0);
   elm_table_pack(tab, wd->usetls, 0, 0, 1, 1);
   evas_object_show(wd->usetls);
   
   /* Use PLAIN */
-  wd->plain = elm_check_add(parent);
+  wd->plain = elm_check_add(box);
   elm_check_label_set(wd->plain, _("Use PLAIN"));
-  evas_object_size_hint_align_set(wd->plain, 0.0, 0.0);
+  evas_object_size_hint_align_set(wd->plain, -1.0, 0.0);
   elm_table_pack(tab, wd->plain, 1, 0, 1, 1);
   evas_object_show(wd->plain);
   
   /* Use SASL */
-  wd->sasl = elm_check_add(parent);
+  wd->sasl = elm_check_add(box);
   elm_check_label_set(wd->sasl, _("Use SASL"));
-  evas_object_size_hint_align_set(wd->sasl, 0.0, 0.0);
+  evas_object_size_hint_align_set(wd->sasl, -1.0, 0.0);
   elm_table_pack(tab, wd->sasl, 0, 1, 1, 1);
   evas_object_show(wd->sasl);
   
   /* SASL Anonymous */
-  wd->anon = elm_check_add(parent);
+  wd->anon = elm_check_add(box);
   elm_check_label_set(wd->anon, _("Anonymous"));
-  evas_object_size_hint_align_set(wd->anon, 0.0, 0.0);
+  evas_object_size_hint_align_set(wd->anon, -1.0, 0.0);
   elm_table_pack(tab, wd->anon, 1, 1, 1, 1);
   evas_object_show(wd->anon);
   evas_object_smart_callback_add(wd->sasl, "changed", _sasl_enable_hook, wd);
   
-  fbox = elm_box_add(parent);
-  evas_object_size_hint_weight_set(fbox, 1.0, 1.0);
-  elm_frame_content_set(frame, fbox);
-  evas_object_show(fbox);
   
-  scroll = elm_scroller_add(parent);
-  elm_scroller_bounce_set(scroll, 0.0, 0.0);
-  evas_object_size_hint_weight_set(scroll, 1.0, 1.0);
-  evas_object_size_hint_align_set(scroll, -1.0, -1.0);
-  elm_scroller_content_set(scroll, box);
-  elm_box_pack_end(fbox, scroll);
-  evas_object_show(scroll);
-  
-  
-  buttons = elm_box_add(parent);
+  /* buttons */
+  buttons = elm_box_add(frame);
   elm_box_horizontal_set(buttons, 1);
   elm_box_homogenous_set(buttons, 1);
   evas_object_size_hint_weight_set(buttons, 1.0, 0.0);
   evas_object_size_hint_align_set(buttons, -1.0, 1.0);
-  elm_box_pack_end(fbox, buttons);
+  elm_box_pack_end(frame, buttons);
   evas_object_show(buttons);
   
-  wd->save = elm_button_add(parent);
+  wd->save = elm_button_add(buttons);
   evas_object_size_hint_weight_set(wd->save, 1.0, 1.0);
   evas_object_size_hint_align_set(wd->save, -1.0, 0.0);
   elm_button_label_set(wd->save, _("Save"));
@@ -276,7 +282,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_show(wd->save);
   evas_object_smart_callback_add(wd->save, "clicked", _save_hook, wd);
   
-  close = elm_button_add(parent);
+  close = elm_button_add(buttons);
   evas_object_size_hint_weight_set(close, 1.0, 1.0);
   evas_object_size_hint_align_set(close, -1.0, 0.0);
   elm_button_label_set(close, _("Close"));

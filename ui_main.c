@@ -102,7 +102,6 @@ static void
 _config_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   Evas_Object *config = elm_jabber_config_add(wd->parent);
-  //evas_object_size_hint_weight_set(settings, 1.0, 1.0);
   elm_pager_content_push(wd->root, config);
   evas_object_show(config);
   evas_object_smart_callback_add(config, "config,changed", _config_changed, wd);
@@ -155,7 +154,7 @@ static const char *title_by_status(Jabber_Show status){
 static const char *icon_by_status(Jabber_Show status){
   int i;
   for(i=0; status_list[i].icon; i++){
-    if(status==status_list[i].icon){
+    if(status==status_list[i].status){
       return status_list[i].icon;
     }
   }
@@ -184,8 +183,17 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
   }
 }
 
+typedef struct _Async_State Async_State;
+struct _Async_State {
+  Widget_Data *wd;
+  Jabber_State st;
+};
+
 static void
-_state_change_hook(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
+_state_change_job(void *data){
+  Async_State *as=data;
+  Widget_Data *wd=as->wd;
+  Jabber_State state=as->st;
   const char *title=_("----");
   
   switch(state){
@@ -200,7 +208,18 @@ _state_change_hook(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
     break;
   }
   elm_hoversel_label_set(wd->status, title);
+  
+  free(as);
 }
+
+static void
+_state_change_async(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
+  Async_State *as=malloc(sizeof(Async_State));
+  as->wd=wd;
+  as->st=state;
+  ecore_job_add(_state_change_job, as);
+}
+
 
 static void
 _status_load(Jabber_Show *status){
@@ -237,6 +256,12 @@ _status_save(Jabber_Show status){
   }
 }
 
+typedef struct _Async_Notify Async_Notify;
+struct _Async_Notify {
+  Widget_Data *wd;
+  char *msg;
+};
+
 static void
 _error_notify_close(void *data, Evas_Object *obj, void *event_info){
   Evas_Object *notify = data;
@@ -244,7 +269,10 @@ _error_notify_close(void *data, Evas_Object *obj, void *event_info){
 }
 
 static void
-_error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
+_error_notify_job(void *data){
+  Async_Notify *an=data;
+  Widget_Data *wd=an->wd;
+  const char *message=an->msg;
   Evas_Object *notify, *box, *text, *close;
   
   DEBUG("ERROR: %s", message);
@@ -270,6 +298,17 @@ _error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
   evas_object_show(close);
   
   evas_object_show(notify);
+  
+  free(an->msg);
+  free(an);
+}
+
+static void
+_error_notify_async(Widget_Data *wd, Jabber_Session *sess, const char *message){
+  Async_Notify *an=malloc(sizeof(Async_Notify));
+  an->wd=wd;
+  an->msg=strdup(message);
+  ecore_job_add(_error_notify_job, an);
 }
 
 Evas_Object *elm_jabber_main(Evas_Object *parent){
@@ -279,8 +318,8 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   wd = malloc(sizeof(Widget_Data));
   wd->jabber=jabber_new();
   wd->need_reconnect=0;
-  jabber_error_callback_set(wd->jabber, (Jabber_Callback)_error_notify_hook, wd);
-  jabber_state_callback_set(wd->jabber, (Jabber_Callback)_state_change_hook, wd);
+  jabber_error_callback_set(wd->jabber, (Jabber_Callback)_error_notify_async, wd);
+  jabber_state_callback_set(wd->jabber, (Jabber_Callback)_state_change_async, wd);
   elm_jabber_config_load(wd->jabber);
   wd->parent=parent;
   

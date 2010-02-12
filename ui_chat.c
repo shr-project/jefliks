@@ -135,6 +135,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
   Chat_Inst *chat=inst_fnd(wd, jid);
   
   if(jid && !chat){
+    /* Create New Chat Instance */
     Evas_Object *box, *scroll, *que, *input, *photo;
     
     chat=malloc(sizeof(Chat_Inst));
@@ -148,22 +149,13 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     chat->needscroll=0;
     
     /* Page Box */
-    box = elm_box_add(wd->parent);
+    box = elm_box_add(wd->root);
     chat->box = box;
     //elm_object_scale_set(chat->box, 0.7);
     evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
     evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
     elm_pager_content_push(wd->pager, box);
     evas_object_show(box);
-    
-    /* Messages Box */
-    que = elm_box_add(box);
-    chat->que=que;
-    evas_object_size_hint_weight_set(que, EVAS_HINT_EXPAND, 0.0);
-    //evas_object_size_hint_align_set(que, EVAS_HINT_FILL, EVAS_HINT_FILL);
-    evas_object_size_hint_align_set(que, EVAS_HINT_FILL, 1.0);
-    evas_object_event_callback_add(que, EVAS_CALLBACK_RESIZE, _que_resize, chat);
-    evas_object_show(que);
     
     /* Messages Scroll */
     scroll = elm_scroller_add(box);
@@ -174,9 +166,18 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     evas_object_smart_callback_add(scroll, "scroll,drag,start", _scroll_drag_start_hook, chat);
     evas_object_smart_callback_add(scroll, "scroll,drag,stop", _scroll_drag_stop_hook, chat);
     evas_object_event_callback_add(scroll, EVAS_CALLBACK_RESIZE, _que_resize, chat);
-    elm_scroller_content_set(scroll, que);
     elm_box_pack_end(box, scroll);
     evas_object_show(scroll);
+    
+    /* Messages Box */
+    que = elm_box_add(box);
+    chat->que=que;
+    evas_object_size_hint_weight_set(que, EVAS_HINT_EXPAND, 0.0);
+    //evas_object_size_hint_align_set(que, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    evas_object_size_hint_align_set(que, EVAS_HINT_FILL, 1.0);
+    evas_object_event_callback_add(que, EVAS_CALLBACK_RESIZE, _que_resize, chat);
+    elm_scroller_content_set(scroll, que);
+    evas_object_show(que);
     
     /* Input Entry */
     input = elm_entry_add(box);
@@ -205,10 +206,9 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
 
 static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - out */){
   if(!chat || !text)return;
-  Widget_Data *wd=chat->wd;
   Evas_Object *repl, *body, *photo;
   
-  repl=elm_bubble_add(wd->parent);
+  repl=elm_bubble_add(chat->que);
   elm_object_scale_set(repl, 0.8);
   elm_bubble_label_set(repl, dir?"you":chat->jid);
   if(!dir){
@@ -232,7 +232,7 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   evas_object_size_hint_weight_set(repl, EVAS_HINT_EXPAND, 0.0);
   evas_object_size_hint_align_set(repl, EVAS_HINT_FILL, EVAS_HINT_FILL);
   
-  body=elm_anchorblock_add(wd->parent);
+  body=elm_anchorblock_add(repl);
   elm_object_scale_set(body, 1.0);
   elm_anchorblock_text_set(body, text);
   /*elm_anchorblock_hover_style_set(body, "popout");*/
@@ -327,6 +327,7 @@ _end_cancel_hook(void *data, Evas_Object *obj, void *event_info){
   if(st){
     inst_cin(wd, 0); // hide input
   }else{
+    /* end chat */
     const char *jid=elm_hoversel_label_get(wd->chats);
     inst_del(wd, jid);
   }
@@ -446,13 +447,41 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
 
 #include<iksemel.h>
 
-void _chat_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
-  Chat_Inst *chat=inst_get(wd, pak->from->full);
+typedef struct _Async_Chat Async_Chat;
+struct _Async_Chat {
+  Widget_Data *wd;
+  char *jid;
+  char *body;
+};
+
+static void
+_async_inst_add(void *data){
+  Async_Chat *ac=data;
+  char *mkp=elm_entry_utf8_to_markup(ac->body);
+  if(mkp){
+    Chat_Inst *chat=inst_get(ac->wd, ac->jid);
+    inst_add(chat, mkp, 0);
+    free(mkp);
+  }
+  free(ac->jid);
+  free(ac->body);
+  free(ac);
+}
+
+static void
+async_inst_add(Widget_Data *wd, const char *jid, const char *body){
+  Async_Chat *ac=malloc(sizeof(Async_Chat));
+  ac->wd=wd;
+  ac->jid=strdup(jid);
+  ac->body=strdup(body);
+  ecore_job_add(_async_inst_add, ac);
+}
+
+static void _chat_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
   const char *txt=iks_find_cdata(pak->x, "body");
-  char *mkp=elm_entry_utf8_to_markup(txt);
   //DEBUG("Chat Hook pak:%s txt:[%s] txr:[%s]", iks_name(pak->x), txt, txr);
-  if(mkp) inst_add(chat, mkp, 0);
-  free(mkp);
+  if(!txt) return;
+  async_inst_add(wd, pak->from->full, txt);
 }
 
 void elm_jabber_chat_register(Evas_Object *box, Jabber_Session *jabber){

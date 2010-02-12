@@ -182,10 +182,10 @@ static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, 
   return strdup(buf);
 }
 
-Evas_Object *elm_jabber_photo_add(Evas_Object *obj, const char *jid){
+Evas_Object *elm_jabber_photo_add(Evas_Object *parent, const char *jid){
   char *sep=strchr(jid, '/');
   char path[strlen(PHOTOS_PATH)+1+strlen(jid)-(sep?strlen(sep):0)+1];
-  Evas_Object *icon = elm_icon_add(obj);
+  Evas_Object *icon = elm_icon_add(parent);
   strcpy(path, PHOTOS_PATH);
   strcat(path, "/");
   strncat(path, jid, sep?(sep-jid):strlen(jid));
@@ -720,8 +720,18 @@ static void roster_status(Widget_Data *wd, ikspak *pak){
   item_res_set(wd, pak->from->partial, pak->from->resource, pri, show, tmp);
 }
 
+typedef struct _Async_Data Async_Data;
+struct _Async_Data {
+  Widget_Data *wd;
+  ikspak *pak;
+};
+
 static void
-_roster_event_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
+_roster_event_job(void *data){
+  Async_Data *ad=data;
+  Widget_Data *wd=ad->wd;
+  ikspak *pak=ad->pak;
+  
   if(pak->type==IKS_PAK_PRESENCE){
     if(pak->subtype==IKS_TYPE_AVAILABLE || pak->subtype==IKS_TYPE_UNAVAILABLE){
       roster_status(wd, pak);
@@ -744,11 +754,24 @@ _roster_event_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
 								  "items", "node", "urn:xmpp:avatar:data"), "item"), "data");
     if(data) update_status_photo(wd, pak->from->partial, data);
   }
+  
+  /* free Async_Data */
+  iks_delete(pak->x);
+  free(ad);
+}
+
+static void
+_roster_event_add(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
+  /* init Async_Data */
+  Async_Data *ad=malloc(sizeof(Async_Data));
+  ad->wd=wd;
+  ad->pak=iks_packet(iks_copy(pak->x));
+  ecore_job_add(_roster_event_job, ad);
 }
 
 int elm_jabber_roster_register(Evas_Object *roster, Jabber_Session *sess){
   Widget_Data *wd=evas_object_data_get(roster, "wd");
   wd->jabber=sess;
-  jabber_roster_callback_set(wd->jabber, (Jabber_Callback)_roster_event_hook, wd);
+  jabber_roster_callback_set(wd->jabber, (Jabber_Callback)_roster_event_add, wd);
   return 1;
 }
