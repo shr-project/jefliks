@@ -208,12 +208,6 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   Widget_Data *wd=chat->wd;
   Evas_Object *repl, *body, *photo;
   
-  body=elm_anchorblock_add(wd->parent);
-  elm_object_scale_set(body, 1.0);
-  elm_anchorblock_text_set(body, text);
-  /*elm_anchorblock_hover_style_set(body, "popout");*/
-  /*elm_anchorblock_hover_parent_set(body, wd->parent);*/
-  
   repl=elm_bubble_add(wd->parent);
   elm_object_scale_set(repl, 0.8);
   elm_bubble_label_set(repl, dir?"you":chat->jid);
@@ -237,7 +231,14 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   
   evas_object_size_hint_weight_set(repl, EVAS_HINT_EXPAND, 0.0);
   evas_object_size_hint_align_set(repl, EVAS_HINT_FILL, EVAS_HINT_FILL);
+  
+  body=elm_anchorblock_add(wd->parent);
+  elm_object_scale_set(body, 1.0);
+  elm_anchorblock_text_set(body, text);
+  /*elm_anchorblock_hover_style_set(body, "popout");*/
+  /*elm_anchorblock_hover_parent_set(body, wd->parent);*/
   elm_bubble_content_set(repl, body);
+  evas_object_show(body);
   
   elm_box_pack_end(chat->que, repl);
   evas_object_show(repl);
@@ -448,10 +449,10 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
 void _chat_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
   Chat_Inst *chat=inst_get(wd, pak->from->full);
   const char *txt=iks_find_cdata(pak->x, "body");
-  char *txr=elm_entry_utf8_to_markup(txt);
+  char *mkp=elm_entry_utf8_to_markup(txt);
   //DEBUG("Chat Hook pak:%s txt:[%s] txr:[%s]", iks_name(pak->x), txt, txr);
-  if(txr) inst_add(chat, txr, 0);
-  free(txr);
+  if(mkp) inst_add(chat, mkp, 0);
+  free(mkp);
 }
 
 void elm_jabber_chat_register(Evas_Object *box, Jabber_Session *jabber){
