@@ -3,6 +3,34 @@
 #include"ui_common.h"
 #include"ui_main.h"
 
+#include<stdlib.h>
+#include<stdarg.h>
+#include<stdio.h>
+
+#ifndef DEBUG_BUFFER
+#define DEBUG_BUFFER 2048
+#endif
+
+#ifndef DEBUG_FORMAT
+#define DEBUG_FORMAT ">>>>>>>> [" NAME "]" " " "%s:%d" " " "%s"
+#endif
+
+#ifdef DEBUG_MODE
+void debug_ex(const char *file, const int line, const char *fmt, ...){
+  va_list args;
+  static char tmpfmt[DEBUG_BUFFER/2];
+  static char tmpbuf[DEBUG_BUFFER];
+  
+  snprintf(tmpfmt, DEBUG_BUFFER/2, DEBUG_FORMAT, file, line, fmt);
+  
+  va_start(args, fmt);
+  vsnprintf(tmpbuf, DEBUG_BUFFER, tmpfmt, args);
+  va_end(args);
+  
+  fprintf(stderr, "%s\n", tmpbuf);
+}
+#endif
+
 /* this is your elementary main function - it MUSt be called IMMEDIATELY
  * after elm_init() and MUSt be passed argc and argv, and MUST be called
  * elm_main and not be static - must be a visible symbol with EAPI infront */

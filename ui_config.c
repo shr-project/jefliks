@@ -40,7 +40,7 @@
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
-  Evas_Object *jidres, *passwd, *server, *server_enable, *usetls, *plain, *sasl, *anon, *save;
+  Evas_Object *frame, *jidres, *passwd, *server, *server_enable, *usetls, *plain, *sasl, *anon, *save;
 };
 
 static void
@@ -70,8 +70,8 @@ _sasl_enable_hook(void *data, Evas_Object *obj, void *event_info){
 
 static void
 _close_hook(void *data, Evas_Object *obj, void *event_info){
-  Evas_Object *frame=data;
-  evas_object_del(frame);
+  Widget_Data *wd=data;
+  evas_object_smart_callback_call(wd->frame, "config,close", event_info);
 }
 
 static void
@@ -113,6 +113,8 @@ _save_hook(void *data, Evas_Object *obj, void *event_info){
   SAVE_OPT(anon);
 #undef SAVE_OPT
   
+  evas_object_smart_callback_call(wd->frame, "config,changed", event_info);
+  
   eet_close(ef);
 }
 
@@ -123,6 +125,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   wd = malloc(sizeof(Widget_Data));
   
   frame = elm_frame_add(parent);
+  wd->frame=frame;
   elm_frame_label_set(frame, _("Connection settings"));
   evas_object_event_callback_add(frame, EVAS_CALLBACK_FREE, _del_hook, wd);
   
@@ -279,7 +282,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   elm_button_label_set(close, _("Close"));
   elm_box_pack_end(buttons, close);
   evas_object_show(close);
-  evas_object_smart_callback_add(close, "clicked", _close_hook, frame);
+  evas_object_smart_callback_add(close, "clicked", _close_hook, wd);
   
   {
     Eet_File *ef;

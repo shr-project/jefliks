@@ -12,7 +12,7 @@ debug=1
 CFLAGS += -Wall $(shell pkg-config --cflags $(libs)) -DNAME=\"$(name)\" -DAUTHOR='"$(author)"'
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
 ifdef debug
-CFLAGS += -g
+CFLAGS += -g -DDEBUG_MODE=1
 endif
 
 #CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG

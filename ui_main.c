@@ -39,9 +39,10 @@
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
-  Evas_Object *parent, *root, *status, *roster, *chat;
+  Evas_Object *parent, *root, *main, *status, *roster, *chat;
   Jabber_Show selected_status;
   Jabber_Session *jabber;
+  char need_reconnect:1;
 };
 
 static void
@@ -57,43 +58,55 @@ _exit_hook(void *data, Evas_Object *obj, void *event_info){
 }
 
 static void
-_root_show(void *data, Evas *e, Evas_Object *obj, void *event_info){
+_roster_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  printf(">>> Show Main Window! <<<\n");
-  evas_object_show(wd->root);
+  DEBUG("Show Main Window!");
+  elm_pager_content_promote(wd->root, wd->main);
+  evas_object_hide(wd->chat);
+  evas_object_show(wd->main);
 }
 
 static void
 _all_chats_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
+  elm_pager_content_promote(wd->root, wd->chat);
+  evas_object_hide(wd->main);
   evas_object_show(wd->chat);
-  evas_object_hide(wd->root);
 }
 
 static void
 _chat_with_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   elm_jabber_chat_enter(wd->chat, elm_jabber_roster_selected(wd->roster));
-  evas_object_show(wd->chat);
-  evas_object_hide(wd->root);
+  _all_chats_hook(data, obj, event_info);
 }
 
 static void
-_config_hide(void *data, Evas *e, Evas_Object *obj, void *event_info){
+_config_changed(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  _root_show(wd, e, obj, event_info);
-  elm_jabber_config_load(wd->jabber);
+  wd->need_reconnect=1;
+}
+
+static void
+_config_close(void *data, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  elm_pager_content_pop(wd->root);
+  evas_object_del(obj);
+  if(wd->need_reconnect){
+    elm_jabber_config_load(wd->jabber);
+    wd->need_reconnect=0;
+  }
 }
 
 static void
 _config_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  Evas_Object *settings = elm_jabber_config_add(wd->parent);
-  evas_object_size_hint_weight_set(settings, 1.0, 1.0);
-  elm_win_resize_object_add(wd->parent, settings);
-  evas_object_hide(wd->root);
-  evas_object_show(settings);
-  evas_object_event_callback_add(settings, EVAS_CALLBACK_HIDE, _config_hide, wd);
+  Evas_Object *config = elm_jabber_config_add(wd->parent);
+  //evas_object_size_hint_weight_set(settings, 1.0, 1.0);
+  elm_pager_content_push(wd->root, config);
+  evas_object_show(config);
+  evas_object_smart_callback_add(config, "config,changed", _config_changed, wd);
+  evas_object_smart_callback_add(config, "config,close", _config_close, wd);
 }
 
 static void
@@ -234,7 +247,7 @@ static void
 _error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
   Evas_Object *notify, *box, *text, *close;
   
-  printf("ERROR: %s\n", message);
+  DEBUG("ERROR: %s", message);
   
   notify = elm_notify_add(wd->parent);
   evas_object_size_hint_weight_set(notify, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
@@ -261,21 +274,27 @@ _error_notify_hook(Widget_Data *wd, Jabber_Session *sess, const char *message){
 
 Evas_Object *elm_jabber_main(Evas_Object *parent){
   Widget_Data *wd;
-  Evas_Object *box, *buttons, *status, *actions, *talks, *roster, *chat;
+  Evas_Object *pager, *box, *buttons, *status, *actions, *talks, *roster, *chat;
   
   wd = malloc(sizeof(Widget_Data));
   wd->jabber=jabber_new();
+  wd->need_reconnect=0;
   jabber_error_callback_set(wd->jabber, (Jabber_Callback)_error_notify_hook, wd);
   jabber_state_callback_set(wd->jabber, (Jabber_Callback)_state_change_hook, wd);
   elm_jabber_config_load(wd->jabber);
   wd->parent=parent;
   
+  /* Main Pager */
+  pager = elm_pager_add(parent);
+  wd->root=pager;
+  evas_object_event_callback_add(pager, EVAS_CALLBACK_FREE, _del_hook, wd);
+  evas_object_show(pager);
+  
   /* Main box */
   box = elm_box_add(parent);
-  wd->root=box;
+  wd->main=box;
   //evas_object_size_hint_weight_set(box, 1.0, 1.0);
   //evas_object_size_hint_align_set(box, -1.0, -1.0);
-  evas_object_event_callback_add(box, EVAS_CALLBACK_FREE, _del_hook, wd);
   evas_object_show(box);
   
   /* Roster */
@@ -345,10 +364,13 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   chat = elm_jabber_chat_add(parent);
   wd->chat=chat;
   elm_jabber_chat_register(chat, wd->jabber);
-  elm_win_resize_object_add(parent, chat);
   evas_object_size_hint_weight_set(chat, 1.0, 1.0);
-  evas_object_event_callback_add(chat, EVAS_CALLBACK_HIDE, _root_show, wd);
-  evas_object_hide(chat);
+  evas_object_smart_callback_add(chat, "goto,roster", _roster_hook, wd);
+  evas_object_show(chat);
   
-  return box;
+  /* Show Main Box */
+  elm_pager_content_push(pager, chat);
+  elm_pager_content_push(pager, box);
+  
+  return pager;
 }

@@ -21,6 +21,7 @@
  */
 
 #include"jabber.h"
+#include"main.h"
 
 #include<stdlib.h>
 #include<stdarg.h>
@@ -482,7 +483,7 @@ int jabber_config(Jabber_Session *sess, const char *jidres, const char *passwd, 
   
   sess->priority=4;
   
-  printf(">>> Jabber Configured..\n");
+  DEBUG("Jabber Configured..");
   
   if(sess->state!=JABBER_DISCONNECTED){
     jabber_disconnect(sess);
@@ -517,7 +518,7 @@ _connect_thread(void *arg){
   }
   
   set_state(JABBER_CONNECTING);
-  printf(">>>> Jabber Connecting..\n");
+  DEBUG("Jabber Connecting..");
   
   e = iks_connect_tcp(sess->prs, sess->server, sess->port);
   switch (e) {
@@ -536,17 +537,17 @@ _connect_thread(void *arg){
     set_error(_("IO Error"));
     return NULL;
   }
-  printf(">>>> Jabber Connected..\n");
+  DEBUG("Jabber Connected..");
   sess->counter = opt_timeout;
   while (1) {
     if(sess->state==JABBER_DISCONNECTED){
       return NULL;
     }
-    printf(">>>> Loop Step..\n");
+    //DEBUG("Loop Step..");
     e = iks_recv (sess->prs, 1);
     //printf(">>> iks_recv code = %d; IKS_OK = %d, IKS_HOOK = %d, IKS_BADXML = %d, IKS_NET_TLSFAIL = %d \n", e, IKS_OK, IKS_HOOK, IKS_BADXML, IKS_NET_TLSFAIL);
     if (IKS_HOOK == e){
-      printf(">>>> Jabber Disconnected..\n");
+      DEBUG("Jabber Disconnected..");
       return NULL;
     }
     if (IKS_BADXML == e){
@@ -586,7 +587,7 @@ int jabber_connect(Jabber_Session *sess){
 
 int jabber_disconnect(Jabber_Session *sess){
   if(sess->state!=JABBER_DISCONNECTED){
-    printf(">>>> Jabber Disconnecting..\n");
+    DEBUG("Jabber Disconnecting..");
     set_presence(sess, NULL, JABBER_UNAVAILABLE, NULL);
     set_state(JABBER_DISCONNECTED);
     _sess_reset(sess);

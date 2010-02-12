@@ -27,6 +27,13 @@
 
 #include"ui_roster.h"
 
+
+#ifndef default_timefmt
+//#define default_timefmt "%Y-%m-%d %H:%M:%S"
+#define default_timefmt "%H:%M:%S"
+#endif
+
+
 typedef struct _Widget_Data Widget_Data;
 typedef struct _Chat_Inst Chat_Inst;
 
@@ -99,11 +106,13 @@ _chat_sel_hook(void *data, Evas_Object *obj, void *event_info){
 static void // auto scrolling to last message
 _que_resize(void *data, Evas *e, Evas_Object *obj, void *event_info){
   Chat_Inst *chat=data;
+  DEBUG("Chat Widget Resized!");
   if(chat->autoscroll){
     Evas_Coord cw, ch, rx, ry, rw, rh;
     elm_scroller_child_size_get(chat->scroll, &cw, &ch);
     elm_scroller_region_get(chat->scroll, &rx, &ry, &rw, &rh);
     elm_scroller_region_bring_in(chat->scroll, rx, ry+(ch-rh), rw, rh);
+    DEBUG("Scrolldowned!");
   }else{
     chat->needscroll=1;
   }
@@ -131,7 +140,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     chat=malloc(sizeof(Chat_Inst));
     memset(chat, 0, sizeof(Chat_Inst));
     
-    printf("Chat Inst Add: 0x%x\n", chat);
+    DEBUG("Chat Inst Add: 0x%x", chat);
     
     chat->wd=wd;
     chat->jid=strdup(jid);
@@ -218,8 +227,6 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
     time_t now;
     struct tm t;
   case 1:
-    //#define default_timefmt "%Y-%m-%d %H:%M:%S"
-    #define default_timefmt "%H:%M:%S"
     memset(&t, 0, sizeof(t));
     now=time(&now);
     if(!localtime_r(&now, &t))break;
@@ -239,7 +246,7 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
 static void inst_free(Chat_Inst *chat){
   if(!chat)return;
   
-  printf("Chat Inst Del: 0x%x\n", chat);
+  DEBUG("Chat Inst Del: 0x%x", chat);
   
   /* switch to other chat */
   Widget_Data *wd=chat->wd;
@@ -296,11 +303,13 @@ _write_send_hook(void *data, Evas_Object *obj, void *event_info){
   if(!chat)return;
   Eina_Bool st=evas_object_visible_get(chat->input);
   if(st){
-    const char* txt=elm_entry_entry_get(chat->input);
-    inst_add(chat, txt, 1);
-    char *txs=elm_entry_markup_to_utf8(txt);
-    if(txs) jabber_chat_send(wd->jabber, chat->jid, txt);
-    free(txs);
+    const char* mkp=elm_entry_entry_get(chat->input);
+    inst_add(chat, mkp, 1);
+    //DEBUG("Markup input: %s", mkp);
+    char *txt=elm_entry_markup_to_utf8(mkp);
+    //DEBUG("Converted to text input: %s", txt);
+    if(txt) jabber_chat_send(wd->jabber, chat->jid, txt);
+    free(txt);
     elm_entry_entry_set(chat->input, "");
     inst_cin(wd, 0); // hide input
   }else{
@@ -331,9 +340,9 @@ void elm_jabber_chat_enter(Evas_Object *box, const char *jid){
 }
 
 static void
-_close_hook(void *data, Evas_Object *obj, void *event_info){
+_roster_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  evas_object_hide(wd->root);
+  evas_object_smart_callback_call(wd->root, "goto,roster", event_info);
 }
 
 Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
@@ -350,6 +359,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   wd->root=box;
   evas_object_data_set(box, "wd", wd);
   evas_object_event_callback_add(box, EVAS_CALLBACK_FREE, _del_hook, wd);
+  
   evas_object_show(box);
   
   /* Chats */
@@ -403,8 +413,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   evas_object_size_hint_weight_set(actions, 1.0, 0.0);
   evas_object_size_hint_align_set(actions, -1.0, 0.0);
   
-  elm_hoversel_item_add(actions, _("Roster"), NULL, 0, _close_hook, wd);
-  /*elm_hoversel_item_add(actions, _("End Chat"), NULL, 0, _chat_end_hook, wd);*/
+  elm_hoversel_item_add(actions, _("Roster"), NULL, 0, _roster_hook, wd);
   
   elm_box_pack_end(buttons, actions);
   evas_object_show(actions);
@@ -440,7 +449,7 @@ void _chat_hook(Widget_Data *wd, Jabber_Session *sess, ikspak *pak){
   Chat_Inst *chat=inst_get(wd, pak->from->full);
   const char *txt=iks_find_cdata(pak->x, "body");
   char *txr=elm_entry_utf8_to_markup(txt);
-  //printf(">>pak:%s txt:[%s] txr:[%s] <<\n", iks_name(pak->x), txt, txr);
+  //DEBUG("Chat Hook pak:%s txt:[%s] txr:[%s]", iks_name(pak->x), txt, txr);
   if(txr) inst_add(chat, txr, 0);
   free(txr);
 }

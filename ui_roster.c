@@ -42,12 +42,6 @@ struct _Widget_Data{
   char photos:1;
 };
 
-static void
-_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
-  Widget_Data *wd=data;
-  free(wd);
-}
-
 /* Show {{{ */
 static struct {
   Jabber_Show show;
@@ -131,8 +125,6 @@ struct _Roster_Item_Res{
 /* Class: Item_Grp {{{ */
 
 static void _item_grp_del(Roster_Item_Grp *item, Evas_Object *obj) {
-  //free(item->grp);
-  //free(item);
 }
 
 static char *_item_grp_label_get(const Roster_Item_Grp *item, Evas_Object *obj, const char *part) {
@@ -152,7 +144,7 @@ static Eina_Bool _item_grp_state_get(const Roster_Item_Grp *item, Evas_Object *o
 }
 
 static void _item_grp_sel(const Roster_Item_Grp *item, Evas_Object *obj, void *event_info) {
-  printf("Selected Group %s\n", item->grp);
+  DEBUG("Selected Group %s", item->grp);
 }
 
 static const Elm_Genlist_Item_Class _item_grp_class={
@@ -170,8 +162,6 @@ static const Elm_Genlist_Item_Class _item_grp_class={
 /* Class: Item_Jid {{{ */
 
 static void _item_jid_del(Roster_Item_Jid *item, Evas_Object *obj) {
-  //free(item->jid);
-  //free(item);
 }
 
 static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
@@ -231,7 +221,7 @@ static Eina_Bool _item_jid_state_get(const Roster_Item_Jid *item, Evas_Object *o
 }
 
 static void _item_jid_sel(const Roster_Item_Jid *item, Evas_Object *obj, void *event_info) {
-  printf("Selected Item %s\n", item->jid);
+  DEBUG("Selected Item %s", item->jid);
   free(item->wd->selected);
   const char *res="";
   if(item->res && item->res->data){
@@ -290,7 +280,7 @@ static Eina_Bool _item_res_state_get(const Roster_Item_Res *item, Evas_Object *o
 }
 
 static void _item_res_sel(const Roster_Item_Res *item, Evas_Object *obj, void *event_info) {
-  printf("Selected Resource %s with pri:%d desc:%s\n", item->res, item->pri, item->desc);
+  DEBUG("Selected Resource %s with pri:%d desc:%s", item->res, item->pri, item->desc);
   free(item->wd->selected);
   item->wd->selected=malloc(strlen(item->par->jid)+1+strlen(item->res)+1);
   sprintf(item->wd->selected, "%s/%s", item->par->jid, item->res);
@@ -511,6 +501,13 @@ static void item_grp_con(Roster_Item_Grp *item){
   item->exp=0;
 }
 
+static void
+_del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  free(wd->selected);
+  item_jid_clr(wd);
+  free(wd);
+}
 
 static void
 _exp_end(void *data, Evas_Object *obj, void *event_info) {
@@ -624,10 +621,11 @@ static void roster_reload(Widget_Data *wd, ikspak *pak){
 }
 
 static void check_status_photo(Widget_Data *wd, ikspak *pak){
+  char need_update=1;
   char *new_sha=iks_find_cdata(iks_find_with_attrib(pak->x, "x", "xmlns", IKS_NS_VCARD ":x:update"), "photo");
   if(!new_sha)return;
   
-  printf(">> new sha: [%s]\n", new_sha);
+  DEBUG("photo: new sha: [%s]", new_sha);
   char path[strlen(PHOTOS_PATH)+1+strlen(pak->from->partial)+1];
   sprintf(path, PHOTOS_PATH "/%s", pak->from->partial);
   char path_hash[strlen(path)+1+4+1];
@@ -635,25 +633,27 @@ static void check_status_photo(Widget_Data *wd, ikspak *pak){
   
   int fd=open(path, O_RDONLY);
   if(fd>0){ // check photo
-    struct stat st;
     close(fd);
-    if((fd=open(path_hash, O_RDONLY))>0 && 0==fstat(fd, &st) && st.st_size>=40){
-      char old_sha[41];
-      old_sha[40]='\0';
-      if(read(fd, old_sha, 40)==40){
-	close(fd);
-	printf(">> readed old sha from: %s\n", path_hash);
-	printf(">> old sha: [%s]\n", old_sha);
-	if(!memcmp(new_sha, old_sha, 40)){
-	  return;
+    fd=open(path_hash, O_RDONLY);
+    if(fd>0){
+      struct stat st;
+      if(0==fstat(fd, &st) && st.st_size>=40){
+	char old_sha[41];
+	old_sha[40]='\0';
+	if(read(fd, old_sha, 40)==40){
+	  close(fd);
+	  DEBUG("photo: readed old sha from: %s size:%d", path_hash, st.st_size);
+	  DEBUG("photo: old sha: [%s]", old_sha);
+	  if(!memcmp(new_sha, old_sha, 40)){
+	    need_update=0;
+	  }
 	}
-      }else{
-	close(fd);
       }
+      close(fd);
     }
   }
   
-  unlink(path);
+  if(!need_update)return;
   
   fd=creat(path_hash, 0644);
   if(fd>0){
@@ -669,22 +669,20 @@ static void update_status_photo(Widget_Data *wd, const char *from, const char *b
   sprintf(path, PHOTOS_PATH "/%s", from);
   
   if(!buf){
-    printf(">> photo for %s not exists in vcard!\n", from);
+    DEBUG("photo: photo for %s not exists in vcard!", from);
     return;
   }
   
   int fd=creat(path, 0644);
   if(!fd){
-    printf(">> error opening file %s for write!\n", path);
+    DEBUG("photo: error opening file %s for write!", path);
     return;
   }
   
   char data[strlen(buf)];
   size_t len=base64_decode(buf, data, strlen(buf));
-  if(write(fd, data, len)==len) printf(">> OK!\n");
+  if(write(fd, data, len)==len) DEBUG("photo: photo for %s cached!", from);
   close(fd);
-  
-  printf(">> photo for %s cached!\n", from);
   
   Roster_Item_Jid *jid_item=item_jid_fnd(wd, from);
   if(!jid_item)return;
