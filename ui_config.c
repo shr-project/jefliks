@@ -377,7 +377,9 @@ int elm_jabber_config_load(Jabber_Session *sess){
 #undef READ_OPT
   
   // For debugging
+#ifdef DEVEL_MODE
   opts|=JABBER_LOG;
+#endif
 
   // Server / Port
   val=eet_read(ef, "server_enable", &size);
