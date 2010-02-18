@@ -27,7 +27,7 @@ mos = $(pos:.po=.mo)
 #debug=1
 #devel=1
 
-CFLAGS += -Wall $(shell pkg-config --cflags $(libs)) -DHAVE_GETTEXT
+CFLAGS += -Wall $(shell pkg-config --cflags $(libs)) -DHAVE_GETTEXT -DBUTTONS_RESCALE=0.9
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
 
 ifdef debug
@@ -64,7 +64,7 @@ $(name).edj: theme.edc
 $(name): $(objects)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-install: $(name) $(name).edj
+install: all
 	@echo 'Installing..'
 	@install -m 755 -d $(prefix)/usr/bin
 	@install -m 755 -t $(prefix)/usr/bin $(name)

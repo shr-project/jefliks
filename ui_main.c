@@ -370,6 +370,9 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   elm_box_homogenous_set(buttons, 1);
   evas_object_size_hint_weight_set(buttons, 1.0, 0.0);
   evas_object_size_hint_align_set(buttons, -1.0, 1.0);
+#ifdef BUTTONS_RESCALE
+  elm_object_scale_set(buttons, BUTTONS_RESCALE);
+#endif
   elm_box_pack_end(box, buttons);
   evas_object_show(buttons);
   

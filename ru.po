@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-02-18 13:01+0500\n"
-"PO-Revision-Date: 2010-02-17 15:19+0500\n"
+"POT-Creation-Date: 2010-02-18 17:01+0000\n"
+"PO-Revision-Date: 2010-02-18 21:55+0500\n"
 "Last-Translator: Kayo Phoenix <kayo.k11.4@gmail.com>\n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -36,7 +36,7 @@ msgstr "Авторизация не удалась"
 
 #: jabber.c:528
 msgid "Hostname lookup failed"
-msgstr "Определение имени хоста не удалось"
+msgstr "Определить имя хоста не удалось"
 
 #: jabber.c:532
 msgid "Connection failed"
@@ -81,11 +81,11 @@ msgstr "Использовать TLS"
 
 #: ui_config.c:257
 msgid "Use PLAIN"
-msgstr "PLAIN аутентификация"
+msgstr "Использовать PLAIN"
 
 #: ui_config.c:264
 msgid "Use SASL"
-msgstr "SASL аутентификация"
+msgstr "Использовать SASL"
 
 #: ui_config.c:271
 msgid "Anonymous"
@@ -97,7 +97,7 @@ msgstr "Скрывать недоступных"
 
 #: ui_config.c:294
 msgid "Hide server part"
-msgstr "Скрывать серверную часть"
+msgstr "Скрывать сервер"
 
 #: ui_config.c:300
 msgid "Hide user's photos"
@@ -111,11 +111,11 @@ msgstr "Сохранить"
 msgid "Close"
 msgstr "Закрыть"
 
-#: ui_chat.c:76 ui_chat.c:426
+#: ui_chat.c:76 ui_chat.c:429
 msgid "Write"
 msgstr "Написать"
 
-#: ui_chat.c:77 ui_chat.c:437
+#: ui_chat.c:77 ui_chat.c:440
 msgid "End"
 msgstr "Завершить"
 
@@ -135,11 +135,11 @@ msgstr "Беседы"
 msgid "No opened chats here."
 msgstr "Нет открытых бесед."
 
-#: ui_chat.c:413 ui_main.c:409
+#: ui_chat.c:416 ui_main.c:412
 msgid "Actions"
 msgstr "Действия"
 
-#: ui_chat.c:418
+#: ui_chat.c:421
 msgid "Roster"
 msgstr "Контакты"
 
@@ -149,19 +149,19 @@ msgstr "В сети"
 
 #: ui_main.c:140
 msgid "Chat"
-msgstr "Готов общаться"
+msgstr "Общаюсь"
 
 #: ui_main.c:141
 msgid "Away"
-msgstr "Нет на месте"
+msgstr "Не здесь"
 
 #: ui_main.c:142
 msgid "XA"
-msgstr "Отсутствую"
+msgstr "XA"
 
 #: ui_main.c:143
 msgid "DND"
-msgstr "Не беспокоить"
+msgstr "DND"
 
 #: ui_main.c:144
 msgid "Offline"
@@ -181,30 +181,30 @@ msgstr "----"
 msgid "...."
 msgstr "...."
 
-#: ui_main.c:379
+#: ui_main.c:382
 msgid "Status"
 msgstr "Статус"
 
-#: ui_main.c:396
+#: ui_main.c:399
 msgid "Talks"
 msgstr "Беседы"
 
-#: ui_main.c:401
+#: ui_main.c:404
 msgid "Chat With"
 msgstr "Говорить с"
 
-#: ui_main.c:402
+#: ui_main.c:405
 msgid "All Chats"
 msgstr "Все беседы"
 
-#: ui_main.c:414
+#: ui_main.c:417
 msgid "Settings"
 msgstr "Настройки"
 
-#: ui_main.c:415
+#: ui_main.c:418
 msgid "About"
 msgstr "О программе"
 
-#: ui_main.c:416
+#: ui_main.c:419
 msgid "Exit"
 msgstr "Выход"
