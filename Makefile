@@ -1,5 +1,5 @@
 name = jefliks
-version = 0.0.2a
+version = 0.0.2b
 comment = Simple Elementary-based XMPP/Jabber client for handheld devices.
 description = This project is a try to write real tiny and fast XMPP/Jabber client for handheld devices, supported by Enlightment Foundation Library. It use Elementary widget toolkit and Iksemel library to make it possible.
 section = openmoko/applications
@@ -16,19 +16,23 @@ stclibs = iksemel
 libs = $(dynlibs) $(stclibs)
 
 depend-libs = $(shell $(patsubst %-strip,%-strings,$(STRIP)) $(name) | grep -v '^/' | grep '\.so')
-depends = evas ecore edje ecore_evas eina libelementary-ver-pre-svn-05-0 libc6 libeet1
+depends = evas ecore edje ecore_evas eina libelementary-ver-pre-svn-05-0 libc6 libeet1 libgnutls26
 
 prefix=$(DESTDIR)
 objects = $(sources:.c=.o)
 
-debug=1
-devel=1
+#debug=1
+#devel=1
 
 CFLAGS += -Wall $(shell pkg-config --cflags $(libs))
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
 
 ifdef debug
 CFLAGS += -g -DDEBUG_MODE=1
+endif
+
+ifdef devel
+CFLAGS += -DDEVEL_MODE=1
 endif
 
 ifndef devel

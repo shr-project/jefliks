@@ -42,6 +42,7 @@ struct _Widget_Data{
   Evas_Object *parent, *root, *main, *status, *roster, *chat;
   Jabber_Show selected_status;
   Jabber_Session *jabber;
+  Elm_Jabber_Option option;
   char need_reconnect:1;
 };
 
@@ -85,6 +86,7 @@ static void
 _config_changed(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   wd->need_reconnect=1;
+  evas_object_smart_callback_call(wd->roster, "config,changed", NULL);
 }
 
 static void
@@ -343,6 +345,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_size_hint_weight_set(roster, 1.0, 1.0);
   evas_object_size_hint_align_set(roster, -1.0, -1.0);
   elm_box_pack_end(box, roster);
+  evas_object_smart_callback_call(wd->roster, "config,changed", NULL);
   evas_object_show(roster);
   
   /* Buttons */

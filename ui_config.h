@@ -23,7 +23,16 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+typedef enum _Elm_Jabber_Option Elm_Jabber_Option;
+enum _Elm_Jabber_Option {
+  ELM_JABBER_HIDE_UNAVAILABLE = (1 << 0),
+  ELM_JABBER_HIDE_SERVER_PART = (1 << 1),
+  ELM_JABBER_HIDE_USER_PHOTOS = (1 << 2),
+  ELM_JABBER_NONE = 0
+};
+
 Evas_Object *elm_jabber_config_add(Evas_Object *parent);
 int elm_jabber_config_load(Jabber_Session *sess);
+Elm_Jabber_Option elm_jabber_config_option();
 
 #endif

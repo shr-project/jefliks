@@ -25,6 +25,7 @@
 #include"jabber.h"
 
 #include"ui_common.h"
+#include"ui_config.h"
 #include"ui_roster.h"
 
 #include<sys/types.h>
@@ -39,7 +40,7 @@ struct _Widget_Data{
   Jabber_Session *jabber;
   Eina_List *jids;
   char *selected;
-  char photos:1;
+  Elm_Jabber_Option option;
 };
 
 /* Show {{{ */
@@ -165,21 +166,27 @@ static void _item_jid_del(Roster_Item_Jid *item, Evas_Object *obj) {
 }
 
 static char *_item_jid_label_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
-  char buf[256];
-  
   if(!strcmp(part, "elm.text")){
-    snprintf(buf, sizeof(buf), "%s (%s-%s)", item->jid, item->sub&JABBER_SUBSCRIPT_TO?"<":" ", item->sub&JABBER_SUBSCRIPT_FROM?">":" ");
+    char name[strlen(item->jid)+1];
+    strcpy(name, item->jid);
+    if(item->wd->option & ELM_JABBER_HIDE_SERVER_PART){
+      char *sep=strchr(name, '@');
+      if(sep)*sep='\0';
+    }
+    char *buf=malloc(strlen(name)+1+5+1);
+    sprintf(buf, "%s (%s-%s)", name, item->sub&JABBER_SUBSCRIPT_TO?"<":" ", item->sub&JABBER_SUBSCRIPT_FROM?">":" ");
+    return buf;
   }
   if(!strcmp(part, "elm.text.sub")){
     if(item->res && item->res->data){
       const Roster_Item_Res *res_item=item->res->data;
-      snprintf(buf, sizeof(buf), "%s [%d]", res_item->res, res_item->pri);
-    }else{
-      buf[0]='\0';
+      int len=strlen(res_item->res)+1+3+8+1;
+      char *buf=malloc(len);
+      snprintf(buf, len, "%s [%d]", res_item->res, res_item->pri);
+      return buf;
     }
   }
-  
-  return strdup(buf);
+  return strdup("");
 }
 
 Evas_Object *elm_jabber_photo_add(Evas_Object *parent, const char *jid){
@@ -211,7 +218,8 @@ static Evas_Object *_item_jid_icon_get(const Roster_Item_Jid *item, Evas_Object 
     }
   }
   if(!strcmp(part, "elm.swallow.end")){
-    return elm_jabber_photo_add(obj, item->jid);
+    if(item->wd->option & ELM_JABBER_HIDE_USER_PHOTOS)return NULL;
+    else return elm_jabber_photo_add(obj, item->jid);
   }
   return NULL;
 }
@@ -298,6 +306,8 @@ static const Elm_Genlist_Item_Class _item_res_class={
 
 /* Class: Item_Res }}} */
 
+static void list_upd(Widget_Data *wd);
+
 static Roster_Item_Jid *item_jid_fnd(Widget_Data *wd, const char* jid){
   if(!wd || !jid) return NULL;
   Eina_List *entry;
@@ -331,6 +341,7 @@ static Roster_Item_Res *item_res_add(Roster_Item_Jid *jid_item, const char *res)
   item->par=jid_item;
   
   jid_item->res=eina_list_append(jid_item->res, item);
+  DEBUG("Item_Res: `%s' added to Item_Jid: `%s'", item->res, jid_item->jid);
   
   return item;
 }
@@ -339,6 +350,7 @@ static void item_res_del(Roster_Item_Jid *jid_item, Roster_Item_Res *res_item){
   if(!jid_item || !res_item) return;
   jid_item->res=eina_list_remove(jid_item->res, res_item); // remove from list
   /* free data */
+  DEBUG("Item_Res: `%s' removed from Item_Jid: `%s'", res_item->res, jid_item->jid);
   free(res_item->res);
   free(res_item->desc);
   free(res_item);
@@ -360,6 +372,7 @@ static int item_res_cmp(const Roster_Item_Res *a, const Roster_Item_Res *b){
 }
 
 static void item_res_srt(Roster_Item_Jid *jid_item){
+  //DEBUG("All Item_Res of Item_Jid: `%s' sorted", jid_item->jid);
   jid_item->res=eina_list_sort(jid_item->res, eina_list_count(jid_item->res), (Eina_Compare_Cb)item_res_cmp);
 }
 
@@ -370,19 +383,18 @@ static void item_res_upd(Roster_Item_Res *res_item){
 
 static void item_jid_upd(Roster_Item_Jid *jid_item){
   if(!jid_item->it) return;
-  if(jid_item->res) {
-    elm_genlist_item_update(jid_item->it);
+  DEBUG("Updating Item_Jid: `%s'", jid_item->jid);
+  //elm_genlist_item_update(jid_item->it);
+  if(!jid_item->res) return;
+  if(jid_item->exp){
+    Eina_List *entry;
+    elm_genlist_item_subitems_clear(jid_item->it);
     
-    if(jid_item->exp){
-      Eina_List *entry;
-      elm_genlist_item_subitems_clear(jid_item->it);
-      
-      for(entry=jid_item->res; entry; entry=entry->next){
-	Roster_Item_Res *res_item=entry->data;
-	if(!res_item || res_item->type!=ROSTER_ITEM_RES) continue;
-	res_item->it=elm_genlist_item_append(jid_item->wd->list, &_item_res_class, res_item, jid_item->it,
-					     ELM_GENLIST_ITEM_NONE, (GenlistItemSelectFunc)_item_res_sel, res_item);
-      }
+    for(entry=jid_item->res; entry; entry=entry->next){
+      Roster_Item_Res *res_item=entry->data;
+      if(!res_item || res_item->type!=ROSTER_ITEM_RES) continue;
+      res_item->it=elm_genlist_item_append(jid_item->wd->list, &_item_res_class, res_item, jid_item->it,
+					   ELM_GENLIST_ITEM_NONE, (GenlistItemSelectFunc)_item_res_sel, res_item);
     }
   }
 }
@@ -390,6 +402,7 @@ static void item_jid_upd(Roster_Item_Jid *jid_item){
 static void item_res_set(Widget_Data *wd, const char* jid, const char *res, int pri, Jabber_Show show, const char *desc){
   Roster_Item_Jid *jid_item=item_jid_fnd(wd, jid);
   if(!jid_item) return;
+  //DEBUG("Item_Res: `%s' Set: `%d' Desc: `%s'", res, show, desc);
   Roster_Item_Res *res_item=item_res_fnd(jid_item, res);
   // if unavailable delete resource end exit
   if(show==JABBER_UNAVAILABLE){
@@ -405,7 +418,8 @@ static void item_res_set(Widget_Data *wd, const char* jid, const char *res, int 
     res_item->desc=strdup(desc);
   }
   item_res_srt(jid_item);
-  item_jid_upd(jid_item);
+  //item_jid_upd(jid_item);
+  //list_upd(wd);
 }
 
 static Roster_Item_Jid *item_jid_add(Widget_Data *wd, const char *jid){
@@ -423,6 +437,8 @@ static Roster_Item_Jid *item_jid_add(Widget_Data *wd, const char *jid){
   
   wd->jids=eina_list_append(wd->jids, item);
   
+  DEBUG("Item_Jid: `%s' added", item->jid);
+  
   return item;
 }
 
@@ -430,6 +446,7 @@ static void item_jid_del(Widget_Data *wd, Roster_Item_Jid *jid_item){
   if(!wd || !jid_item) return;
   wd->jids=eina_list_remove(wd->jids, jid_item); // remove from list
   /* free data */
+  DEBUG("Item_Jid: `%s' removed", jid_item->jid);
   item_res_clr(jid_item);
   free(jid_item->jid);
   free(jid_item);
@@ -447,14 +464,24 @@ static void item_jid_clr(Widget_Data *wd){
 
 static void list_upd(Widget_Data *wd){
   if(!wd) return;
+  DEBUG("Update List of Jids");
   elm_genlist_clear(wd->list);
   Eina_List *entry;
   for(entry=wd->jids; entry; entry=entry->next){
     Roster_Item_Jid *jid_item=entry->data;
-    jid_item->it=elm_genlist_item_append(wd->list, &_item_jid_class, jid_item, NULL,
-					 ELM_GENLIST_ITEM_SUBITEMS,
-					 (GenlistItemSelectFunc)_item_jid_sel, jid_item);
+    //DEBUG("Update Jid: `%s' Res:%d", jid_item->jid, eina_list_count(jid_item->res));
+    /* no shows unavailable */
+    if(jid_item->wd->option & ELM_JABBER_HIDE_UNAVAILABLE && !jid_item->res){
+      jid_item->it=NULL;
+    }else{
+      /* show jid */
+      jid_item->it=elm_genlist_item_append(wd->list, &_item_jid_class, jid_item, NULL,
+					   ELM_GENLIST_ITEM_SUBITEMS,
+					   (GenlistItemSelectFunc)_item_jid_sel, jid_item);
+      item_jid_upd(jid_item);
+    }
   }
+  DEBUG("Update List of Jids Done");
 }
 
 static void item_jid_set(Widget_Data *wd, const char *jid, Jabber_Subscript sub){
@@ -464,7 +491,7 @@ static void item_jid_set(Widget_Data *wd, const char *jid, Jabber_Subscript sub)
   jid_item->wd=wd;
   jid_item->sub=sub;
   
-  list_upd(wd);  
+  //list_upd(wd);
 }
 
 static Eina_Bool item_jid_exp_req(const Roster_Item_Jid *item){
@@ -558,6 +585,12 @@ _con_req(void *data, Evas_Object *obj, void *event_info) {
 
 /* Roster Item }}} */
 
+static void
+_config_changed(void *data, Evas_Object *obj, void *event_info){
+  Widget_Data *wd=data;
+  wd->option=elm_jabber_config_option();
+  //list_upd(wd);
+}
 
 Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   Evas_Object *list;
@@ -581,6 +614,8 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   
   evas_object_smart_callback_add(list, "expanded", _exp_end, NULL);
   evas_object_smart_callback_add(list, "contracted", _con_end, NULL);
+  
+  evas_object_smart_callback_add(list, "config,changed", _config_changed, wd);
   
   return wd->list;
 }
@@ -618,6 +653,7 @@ static void roster_reload(Widget_Data *wd, ikspak *pak){
       }
     }
   }
+  list_upd(wd);
 }
 
 static void check_status_photo(Widget_Data *wd, ikspak *pak){
@@ -718,6 +754,7 @@ static void roster_status(Widget_Data *wd, ikspak *pak){
   check_status_photo(wd, pak);
   
   item_res_set(wd, pak->from->partial, pak->from->resource, pri, show, tmp);
+  list_upd(wd);
 }
 
 typedef struct _Async_Data Async_Data;

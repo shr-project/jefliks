@@ -23,7 +23,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-#ifdef DEBUG_MODE
+#ifdef DEVEL_MODE
 void debug_ex(const char *file, const int line, const char *fmt, ...);
 #define DEBUG(...) debug_ex(__FILE__, __LINE__, __VA_ARGS__)
 #else

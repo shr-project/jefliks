@@ -40,7 +40,9 @@
 
 typedef struct _Widget_Data Widget_Data;
 struct _Widget_Data{
-  Evas_Object *frame, *jidres, *passwd, *server, *server_enable, *usetls, *plain, *sasl, *anon, *save;
+  Evas_Object *frame, *jidres, *passwd, *server, *server_enable, *save;
+  Evas_Object *usetls, *plain, *sasl, *anon;
+  Evas_Object *hide_unaval, *hide_server, *hide_photos;
 };
 
 static void
@@ -112,6 +114,14 @@ _save_hook(void *data, Evas_Object *obj, void *event_info){
   SAVE_OPT(sasl);
   SAVE_OPT(anon);
 #undef SAVE_OPT
+  
+  {
+    Elm_Jabber_Option opts=ELM_JABBER_NONE;
+    if(elm_check_state_get(wd->hide_unaval)) opts|=ELM_JABBER_HIDE_UNAVAILABLE;
+    if(elm_check_state_get(wd->hide_server)) opts|=ELM_JABBER_HIDE_SERVER_PART;
+    if(elm_check_state_get(wd->hide_photos)) opts|=ELM_JABBER_HIDE_USER_PHOTOS;
+    eet_write(ef, "options", &opts, sizeof(Elm_Jabber_Option), 0);
+  }
   
   evas_object_smart_callback_call(wd->frame, "config,changed", event_info);
   
@@ -264,6 +274,35 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_show(wd->anon);
   evas_object_smart_callback_add(wd->sasl, "changed", _sasl_enable_hook, wd);
   
+  {
+    /* options */
+    /* Table for Checkboxes */
+    Evas_Object *tab = elm_table_add(box);
+    elm_table_homogenous_set(tab, 1);
+    evas_object_size_hint_weight_set(tab, 1.0, 1.0);
+    evas_object_size_hint_align_set(tab, -1.0, -1.0);
+    elm_box_pack_end(box, tab);
+    evas_object_show(tab);
+    
+    wd->hide_unaval = elm_check_add(box);
+    elm_check_label_set(wd->hide_unaval, _("Hide unavailable"));
+    evas_object_size_hint_align_set(wd->hide_unaval, -1.0, 0.0);
+    elm_table_pack(tab, wd->hide_unaval, 0, 0, 1, 1);
+    evas_object_show(wd->hide_unaval);
+    
+    wd->hide_server = elm_check_add(box);
+    elm_check_label_set(wd->hide_server, _("Hide server part"));
+    evas_object_size_hint_align_set(wd->hide_server, -1.0, 0.0);
+    elm_table_pack(tab, wd->hide_server, 1, 0, 1, 1);
+    evas_object_show(wd->hide_server);
+    
+    wd->hide_photos = elm_check_add(box);
+    elm_check_label_set(wd->hide_photos, _("Hide user's photos"));
+    evas_object_size_hint_align_set(wd->hide_photos, -1.0, 0.0);
+    elm_table_pack(tab, wd->hide_photos, 0, 1, 1, 1);
+    evas_object_show(wd->hide_photos);
+    /*  */
+  }  
   
   /* buttons */
   buttons = elm_box_add(frame);
@@ -309,7 +348,8 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
 #define LOAD_OPT(name)						\
     val=ef?eet_read(ef, #name, &size):NULL;			\
     elm_check_state_set(wd->name, val?*val:default_ ## name);	\
-    if(val)free(val);
+    if(val)free(va
+    l);
     
     LOAD_OPT(server_enable);
     LOAD_OPT(usetls);
@@ -327,9 +367,36 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     }
     
     if(ef)eet_close(ef);
+    
+    {
+      Elm_Jabber_Option opts=elm_jabber_config_option();
+      elm_check_state_set(wd->hide_unaval, opts & ELM_JABBER_HIDE_UNAVAILABLE);
+      elm_check_state_set(wd->hide_server, opts & ELM_JABBER_HIDE_SERVER_PART);
+      elm_check_state_set(wd->hide_photos, opts & ELM_JABBER_HIDE_USER_PHOTOS);
+    }
   }
   
   return frame;
+}
+
+Elm_Jabber_Option elm_jabber_config_option(){
+  Elm_Jabber_Option opts=ELM_JABBER_NONE;
+  Eet_File *ef;
+  int size;
+  char *val=NULL;
+  
+  ef = eet_open(EET_CONF_FILE, EET_FILE_MODE_READ);
+  
+  if(ef){
+    val=eet_read(ef, "options", &size);
+    if(val){
+      opts=*val;
+      free(val);
+    }
+    eet_close(ef);
+  }
+  
+  return opts;
 }
 
 int elm_jabber_config_load(Jabber_Session *sess){
