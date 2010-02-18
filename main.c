@@ -3,6 +3,7 @@
 #include"ui_common.h"
 #include"ui_main.h"
 
+#include<locale.h>
 #include<stdlib.h>
 #include<stdarg.h>
 #include<stdio.h>
@@ -78,6 +79,12 @@ int main(int argc, char **argv){
   
   check_dir(CONFIG_PATH);
   check_dir(PHOTOS_PATH);
+  
+#ifdef HAVE_GETTEXT
+  setlocale(LC_ALL, "");
+  bindtextdomain(NAME, "/usr/share/locale");
+  textdomain(NAME);
+#endif
   
   /* put ere any init specific to this app like parsing args etc. */
   elm_init(argc, argv);

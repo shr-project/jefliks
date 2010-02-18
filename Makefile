@@ -5,6 +5,7 @@ description = This project is a try to write real tiny and fast XMPP/Jabber clie
 section = openmoko/applications
 priority = optional
 author = Phoenix Kayo <kayo.k11.4@gmail.com>
+copyright = 2010, $(author)
 maintainer = $(author)
 homepage = http://sourceforge.net/projects/jefliks/
 source = http://sourceforge.net/projects/jefliks/
@@ -14,17 +15,19 @@ sources = main.c jabber.c ui_config.c ui_about.c ui_roster.c ui_chat.c ui_main.c
 dynlibs = evas ecore edje ecore-evas eina-0 elementary
 stclibs = iksemel
 libs = $(dynlibs) $(stclibs)
+pos = ru.po
 
 depend-libs = $(shell $(patsubst %-strip,%-strings,$(STRIP)) $(name) | grep -v '^/' | grep '\.so')
 depends = evas ecore edje ecore_evas eina libelementary-ver-pre-svn-05-0 libc6 libeet1 libgnutls26
 
 prefix=$(DESTDIR)
 objects = $(sources:.c=.o)
+mos = $(pos:.po=.mo)
 
 #debug=1
 #devel=1
 
-CFLAGS += -Wall $(shell pkg-config --cflags $(libs))
+CFLAGS += -Wall $(shell pkg-config --cflags $(libs)) -DHAVE_GETTEXT
 LDFLAGS += -Wl,-Bstatic $(shell pkg-config --libs $(stclibs)) -Wl,-Bdynamic $(shell pkg-config --libs $(dynlibs))
 
 ifdef debug
@@ -42,7 +45,18 @@ endif
 #CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG
 CFLAGS+=-DNAME=\"$(name)\" -DVERSION=\"$(version)\" #-DAUTHOR=\"$(author)\"
 
-all: $(name) $(name).edj
+all: $(name) $(name).edj $(mos)
+
+$(name).pot: $(sources)
+	xgettext --language=C --keyword=_ --default-domain="$(name)" --package-name="$(name)" --package-version="$(version)" --copyright-holder="$(author)" -o $@ $^
+
+gettext: $(name).pot
+
+%.mo: %.po
+	msgfmt -o $@ $<
+
+%.po: $(name).pot
+	[ -f $@ ] || msginit --locale=$* -o $@ -i $<; [ -f $@ ] && msgmerge --update $@ $<
 
 $(name).edj: theme.edc
 	edje_cc $< $@
@@ -60,6 +74,7 @@ install: $(name) $(name).edj
 	@install -m 644 -t $(prefix)/usr/share/pixmaps $(name).png
 	@install -m 755 -d $(prefix)/usr/share/$(name)
 	@install -m 644 $(name).edj $(prefix)/usr/share/$(name)/default.edj
+	@$(foreach mo,$(mos),install -m 644 $(mo) $(prefix)/usr/share/locale/$(mo:.mo=)/LC_MESSAGES/$(name).mo; )
 
 $(name).control:
 	@echo 'Generating $@..'
@@ -95,7 +110,7 @@ ipk: $(name).control $(name).desktop
 	om-make-ipkg . $<
 
 clean:
-	rm -f $(name) *.o *.bin *.elf *.edj *~ *.ipk *.desktop *.control
+	rm -f $(name) *.o *.bin *.elf *.edj *~ *.ipk *.desktop *.control *.mo *.pot
 
 s2n: all
 	scp $(name) $(name).edj root@kayo-neo:/home/root

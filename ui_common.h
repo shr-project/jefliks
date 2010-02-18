@@ -23,9 +23,17 @@
 #ifndef __UI_COMMON_H__
 #define __UI_COMMON_H__
 
-#ifndef _
-#define _(...) __VA_ARGS__
-#endif
+#ifdef HAVE_GETTEXT
+#include<libintl.h>
+#define _(String) gettext (String)
+#define gettext_noop(String) String
+#define N_(String) gettext_noop (String)
+#else /* HAVE_GETTEXT */
+#define _(String) (String)
+#define N_(String) String
+#define textdomain(Domain)
+#define bindtextdomain(Package, Directory)
+#endif /* HAVE_GETTEXT */
 
 #ifndef CONFIG_PATH
 #define CONFIG_PATH "." NAME

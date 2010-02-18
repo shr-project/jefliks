@@ -119,19 +119,30 @@ _about_hook(void *data, Evas_Object *obj, void *event_info){
   evas_object_show(about);
 }
 
-struct {
+static struct {
   Jabber_Show status;
-  const char *title;
+  char *title;
   const char *icon;
 } status_list[] = {
-  { JABBER_ONLINE, _("Online"), "status/available" },
-  { JABBER_CHAT, _("Chat"), "status/chat" },
-  { JABBER_AWAY, _("Away"), "status/away" },
-  { JABBER_XA, _("XA"), "status/xa" }, // Extended Away
-  { JABBER_DND, _("DND"), "status/dnd" }, // Don't Disturb
-  { JABBER_OFFLINE, _("Offline"), "status/unavailable" },
+  { JABBER_ONLINE, NULL, "status/available" },
+  { JABBER_CHAT, NULL, "status/chat" },
+  { JABBER_AWAY, NULL, "status/away" },
+  { JABBER_XA, NULL, "status/xa" }, // Extended Away
+  { JABBER_DND, NULL, "status/dnd" }, // Don't Disturb
+  { JABBER_OFFLINE, NULL, "status/unavailable" },
   { 0, NULL, NULL }
 };
+
+static void status_init(){
+  if(status_list[0].title)return;
+  
+  status_list[0].title=_("Online");
+  status_list[1].title=_("Chat");
+  status_list[2].title=_("Away");
+  status_list[3].title=_("XA");
+  status_list[4].title=_("DND");
+  status_list[5].title=_("Offline");
+}
 
 static Jabber_Show status_by_title(const char *title){
   int i;
@@ -153,6 +164,7 @@ static const char *title_by_status(Jabber_Show status){
   return NULL;
 }
 
+/*
 static const char *icon_by_status(Jabber_Show status){
   int i;
   for(i=0; status_list[i].icon; i++){
@@ -162,6 +174,7 @@ static const char *icon_by_status(Jabber_Show status){
   }
   return NULL;
 }
+*/
 
 static void
 _status_hook(void *data, Evas_Object *obj, void *event_info){
@@ -222,7 +235,7 @@ _state_change_async(Widget_Data *wd, Jabber_Session *sess, Jabber_State state){
   ecore_job_add(_state_change_job, as);
 }
 
-
+/*
 static void
 _status_load(Jabber_Show *status){
   Eet_File *ef;
@@ -257,6 +270,7 @@ _status_save(Jabber_Show status){
     eet_close(ef);
   }
 }
+*/
 
 typedef struct _Async_Notify Async_Notify;
 struct _Async_Notify {
@@ -316,6 +330,8 @@ _error_notify_async(Widget_Data *wd, Jabber_Session *sess, const char *message){
 Evas_Object *elm_jabber_main(Evas_Object *parent){
   Widget_Data *wd;
   Evas_Object *pager, *box, *buttons, *status, *actions, *talks, *roster, *chat;
+  
+  status_init();
   
   wd = malloc(sizeof(Widget_Data));
   wd->jabber=jabber_new();
