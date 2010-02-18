@@ -348,8 +348,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
 #define LOAD_OPT(name)						\
     val=ef?eet_read(ef, #name, &size):NULL;			\
     elm_check_state_set(wd->name, val?*val:default_ ## name);	\
-    if(val)free(va
-    l);
+    if(val)free(val);
     
     LOAD_OPT(server_enable);
     LOAD_OPT(usetls);
