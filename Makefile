@@ -74,7 +74,7 @@ install: $(name) $(name).edj
 	@install -m 644 -t $(prefix)/usr/share/pixmaps $(name).png
 	@install -m 755 -d $(prefix)/usr/share/$(name)
 	@install -m 644 $(name).edj $(prefix)/usr/share/$(name)/default.edj
-	@$(foreach mo,$(mos),install -m 644 $(mo) $(prefix)/usr/share/locale/$(mo:.mo=)/LC_MESSAGES/$(name).mo; )
+	@$(foreach mo,$(mos),mkdir -p $(prefix)/usr/share/locale/$(mo:.mo=)/LC_MESSAGES; install -m 644 $(mo) $(prefix)/usr/share/locale/$(mo:.mo=)/LC_MESSAGES/$(name).mo; )
 
 $(name).control:
 	@echo 'Generating $@..'
