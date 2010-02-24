@@ -45,7 +45,7 @@ endif
 #CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG
 CFLAGS+=-DNAME=\"$(name)\" -DVERSION=\"$(version)\" #-DAUTHOR=\"$(author)\"
 
-all: $(name) $(name).edj $(mos)
+all: $(name) $(name).edj $(mos) $(name).desktop
 
 $(name).pot: $(sources)
 	xgettext --language=C --keyword=_ --default-domain="$(name)" --package-name="$(name)" --package-version="$(version)" --copyright-holder="$(author)" -o $@ $^
@@ -105,7 +105,7 @@ $(name).desktop:
 
 .PHONY: install control
 
-ipk: $(name).control $(name).desktop
+ipk: $(name).control
 	rm -rf /tmp/.-ipkg-tmp
 	om-make-ipkg . $<
 
