@@ -520,7 +520,7 @@ _connect_thread(void *arg){
   set_state(JABBER_CONNECTING);
   DEBUG("Jabber Connecting..");
   
-  e = iks_connect_tcp(sess->prs, sess->server, sess->port);
+  e = iks_connect_via(sess->prs, sess->server, sess->port, sess->acc->server);
   switch (e) {
   case IKS_OK:
     break;
