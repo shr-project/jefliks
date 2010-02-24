@@ -7,8 +7,8 @@ priority = optional
 author = Phoenix Kayo <kayo.k11.4@gmail.com>
 copyright = 2010, $(author)
 maintainer = $(author)
-homepage = http://sourceforge.net/projects/jefliks/
-source = http://sourceforge.net/projects/jefliks/
+homepage = http://jefliks.sf.net/
+source = $(homepage)
 architecture = armv4t
 
 sources = main.c jabber.c ui_config.c ui_about.c ui_roster.c ui_chat.c ui_main.c base64.c
@@ -43,7 +43,7 @@ CFLAGS += -DTHEME_PATH=\"/usr/share/$(name)/default.edj\"
 endif
 
 #CFLAGS+=-DTEST_WIDGET_MODE=1 -DTEST_JABBER_CONFIG
-CFLAGS+=-DNAME=\"$(name)\" -DVERSION=\"$(version)\" #-DAUTHOR=\"$(author)\"
+CFLAGS+=-DNAME=\"$(name)\" -DVERSION=\"$(version)\" -DHOMEPAGE=\"$(homepage)\" -DAUTHOR=\"'$(author)'\"
 
 all: $(name) $(name).edj $(mos) $(name).desktop
 
@@ -112,5 +112,6 @@ ipk: $(name).control
 clean:
 	rm -f $(name) *.o *.bin *.elf *.edj *~ *.ipk *.desktop *.control *.mo *.pot
 
+# My Stuff
 s2n: all
 	scp $(name) $(name).edj root@kayo-neo:/home/root

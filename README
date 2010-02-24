@@ -1,0 +1,31 @@
+Jefliks
+
+This project is a try to write real tiny and fast XMPP/Jabber client
+for handheld devices, supported by Enlightment Foundation Library.
+I use Elementary widget toolkit and Iksemel library to make it possible.
+
+
+
+
+Homepage
+
+http://sourceforge.net/projects/jefliks/
+
+
+
+
+Author(s)
+
+Phoenix Kayo <kayo.k11.4@gmail.com>
+
+
+
+
+Makefile
+
+make [all]    - builds application;
+make ipk      - builds package for opkg;
+make install  - install application;
+make clean    - cleans all temporary and builded files.
+
+I don't think that autotools must be necessary here, fix me if it's not that.

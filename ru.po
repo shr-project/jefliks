@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-02-18 17:01+0000\n"
+"POT-Creation-Date: 2010-02-24 16:57+0000\n"
 "PO-Revision-Date: 2010-02-18 21:55+0500\n"
 "Last-Translator: Kayo Phoenix <kayo.k11.4@gmail.com>\n"
 "Language-Team: Russian\n"
@@ -107,7 +107,7 @@ msgstr "Не отображать фото"
 msgid "Save"
 msgstr "Сохранить"
 
-#: ui_config.c:327 ui_about.c:65 ui_main.c:311
+#: ui_config.c:327 ui_about.c:76 ui_main.c:311
 msgid "Close"
 msgstr "Закрыть"
 

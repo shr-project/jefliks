@@ -25,9 +25,19 @@
 #include"ui_common.h"
 #include"ui_about.h"
 
+#define ABOUT_CONTENT							\
+  "<b>" NAME "</b> <em>" VERSION "</em><br>"				\
+  "tiny lightest XMPP/Jabber client for handheld devices supported by Enlightenment.<br>" \
+  "GUI based on EFL/Elementary.<br>"					\
+  "XMPP powered by Iksemel.<br><br>"					\
+  "Copyright (c) 2010 by Phoenix Kayo<br>"				\
+  "<b>" HOMEPAGE "</b><br><br>"						\
+  "Most opensource Jabber clients, I've seen, aren't suitable for handheld devices. So I decided to make jefliks much lighter and faster than other clients. I need your support to make it really beautifull and usable.<br><br>" \
+  "Donate to support further development.<br><br>"			\
+  "Have fun!"
+
 static void
-_close_hook(void *data, Evas_Object *obj, void *event_info)
-{
+_close_hook(void *data, Evas_Object *obj, void *event_info){
   Evas_Object *about=data;
   evas_object_del(about);
 }
@@ -40,6 +50,7 @@ Evas_Object *elm_jabber_about_add(Evas_Object *parent){
   
   /* Vertical Box */
   box = elm_box_add(about);
+  //elm_object_scale_set(box, 0.9);
   elm_win_inwin_content_set(about, box);
   evas_object_show(box);
   
@@ -54,7 +65,7 @@ Evas_Object *elm_jabber_about_add(Evas_Object *parent){
   
   /* About Text */
   text = elm_anchorview_add(box);
-  elm_anchorview_text_set(text, NAME " - <a href=efl>EFL</a>-based <a href=iksemel>Iksemel</a>-powered Jabber Client" "<br><br>" "Authors:" "<br>" "  Phoenix Kayo <a href=1>kayo.k11.4@gmail.com</a>" "<br><br><br>" "Have fun!");
+  elm_anchorview_text_set(text, ABOUT_CONTENT);
   evas_object_size_hint_weight_set(text, 1.0, 1.0);
   evas_object_size_hint_align_set(text, -1.0, -1.0);
   elm_box_pack_end(box, text);
