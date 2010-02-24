@@ -30,6 +30,7 @@
   "tiny lightest XMPP/Jabber client for handheld devices supported by Enlightenment.<br>" \
   "GUI based on EFL/Elementary.<br>"					\
   "XMPP powered by Iksemel.<br><br>"					\
+  "<em>Application available under GNU/GPLv2 or later.</em><br>"	\
   "Copyright (c) 2010 by Phoenix Kayo<br>"				\
   "<b>" HOMEPAGE "</b><br><br>"						\
   "Most opensource Jabber clients, I've seen, aren't suitable for handheld devices. So I decided to make jefliks much lighter and faster than other clients. I need your support to make it really beautifull and usable.<br><br>" \
