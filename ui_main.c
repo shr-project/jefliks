@@ -179,7 +179,7 @@ static const char *icon_by_status(Jabber_Show status){
 static void
 _status_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  Elm_Hoversel_Item* item=event_info;
+  Elm_Object_Item* item=event_info;
   
   wd->selected_status=status_by_title(elm_object_item_text_get(item));
   

@@ -40,7 +40,7 @@ typedef struct _Chat_Inst Chat_Inst;
 struct _Chat_Inst{ /* Chat Instance */
   Widget_Data *wd;
   Evas_Object *box /* chat object */, *que /* messages queue */, *scroll /* messages queue */, *input /* input area */, *photo;
-  Elm_Hoversel_Item *itm;
+  Elm_Object_Item *itm;
   char *jid; // jid/res
   char autoscroll:1;
   char needscroll:1;
