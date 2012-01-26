@@ -12,13 +12,13 @@ source = $(homepage)
 architecture = armv4t
 
 sources = main.c jabber.c ui_config.c ui_about.c ui_roster.c ui_chat.c ui_main.c base64.c
-dynlibs = evas ecore edje ecore-evas eina-0 elementary
+dynlibs = evas ecore edje ecore-evas eina elementary gnutls
 stclibs = iksemel
 libs = $(dynlibs) $(stclibs)
 pos = ru.po
 
 depend-libs = $(shell $(patsubst %-strip,%-strings,$(STRIP)) $(name) | grep -v '^/' | grep '\.so')
-depends = evas ecore edje ecore_evas eina libelementary-ver-pre-svn-05-0 libc6 libeet1 libgnutls26
+depends = evas ecore edje ecore_evas eina elementary libc6 libeet1 libgnutls26
 
 prefix=$(DESTDIR)
 objects = $(sources:.c=.o)
