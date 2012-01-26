@@ -176,7 +176,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     //evas_object_size_hint_align_set(que, EVAS_HINT_FILL, EVAS_HINT_FILL);
     evas_object_size_hint_align_set(que, EVAS_HINT_FILL, 1.0);
     evas_object_event_callback_add(que, EVAS_CALLBACK_RESIZE, _que_resize, chat);
-    elm_scroller_content_set(scroll, que);
+    elm_object_content_set(scroll, que);
     evas_object_show(que);
     
     /* Input Entry */
@@ -213,7 +213,7 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   elm_object_text_set(repl, dir?"you":chat->jid);
   if(!dir){
     photo = elm_jabber_photo_add(repl, chat->jid);
-    if(photo) elm_bubble_icon_set(repl, photo);
+    if(photo) elm_object_content_set(repl, photo);
   }
   
   switch(1){
@@ -234,10 +234,10 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   
   body=elm_anchorblock_add(repl);
   elm_object_scale_set(body, 1.0);
-  elm_anchorblock_text_set(body, text);
+  elm_object_text_set(body, text);
   /*elm_anchorblock_hover_style_set(body, "popout");*/
   /*elm_anchorblock_hover_parent_set(body, wd->parent);*/
-  elm_bubble_content_set(repl, body);
+  elm_object_content_set(repl, body);
   evas_object_show(body);
   
   elm_box_pack_end(chat->que, repl);
@@ -387,7 +387,7 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   elm_object_text_set(empty, "Empty");
   evas_object_size_hint_weight_set(empty, 1.0, 1.0);
   evas_object_size_hint_align_set(empty, -1.0, -1.0);
-  elm_frame_content_set(empty, empty_label);
+  elm_object_content_set(empty, empty_label);
   evas_object_show(empty);
   
   /* Chats Pager */

@@ -156,7 +156,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   evas_object_size_hint_weight_set(box, 1.0, 0.0);
   evas_object_size_hint_align_set(box, -1.0, -1.0);
   */
-  elm_scroller_content_set(scroll, box);
+  elm_object_content_set(scroll, box);
   evas_object_show(box);
   
 #if 1
@@ -167,7 +167,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     evas_object_size_hint_weight_set(field, 1.0, 0.0);			\
     evas_object_size_hint_align_set(field, -1.0, 0.0);			\
     elm_box_pack_end(box, field);					\
-    elm_frame_content_set(field, widget);				\
+    elm_object_content_set(field, widget);				\
     evas_object_size_hint_weight_set(widget, 1.0, 0.0);			\
     evas_object_size_hint_align_set(widget, -1.0, 0.0);			\
     evas_object_show(widget);						\

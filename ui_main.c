@@ -298,7 +298,7 @@ _error_notify_job(void *data){
   elm_win_resize_object_add(wd->parent, notify);
   
   box = elm_box_add(wd->parent);
-  elm_notify_content_set(notify, box);
+  elm_object_content_set(notify, box);
   elm_box_horizontal_set(box, 1);
   evas_object_show(box);
   
