@@ -163,7 +163,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
 #define WRAP_FIELD(title, widget) {					\
     Evas_Object *field;							\
     field = elm_frame_add(box);						\
-    elm_frame_label_set(field, title);					\
+    elm_object_text_set(field, title);					\
     evas_object_size_hint_weight_set(field, 1.0, 0.0);			\
     evas_object_size_hint_align_set(field, -1.0, 0.0);			\
     elm_box_pack_end(box, field);					\
@@ -184,7 +184,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     evas_object_size_hint_align_set(hbox, -1.0, 0.0);			\
     elm_box_pack_end(box, hbox);					\
     label = elm_label_add(box);						\
-    elm_label_label_set(label, title);					\
+    elm_object_text_set(label, title);					\
     evas_object_size_hint_weight_set(label, 1.0, 0.0);			\
     evas_object_size_hint_align_set(label, -1.0, 0.0);			\
     elm_box_pack_end(hbox, label);					\
@@ -223,7 +223,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   }
   
   wd->server_enable = elm_check_add(box);
-  elm_check_label_set(wd->server_enable, "");
+  elm_object_text_set(wd->server_enable, "");
   evas_object_size_hint_weight_set(wd->server_enable, 0.0, 0.0);
   evas_object_size_hint_align_set(wd->server_enable, 0.0, 0.0);
   evas_object_show(wd->server_enable);
@@ -247,28 +247,28 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   
   /* Use TLS */
   wd->usetls = elm_check_add(box);
-  elm_check_label_set(wd->usetls, _("Use TLS"));
+  elm_object_text_set(wd->usetls, _("Use TLS"));
   evas_object_size_hint_align_set(wd->usetls, -1.0, 0.0);
   elm_table_pack(tab, wd->usetls, 0, 0, 1, 1);
   evas_object_show(wd->usetls);
   
   /* Use PLAIN */
   wd->plain = elm_check_add(box);
-  elm_check_label_set(wd->plain, _("Use PLAIN"));
+  elm_object_text_set(wd->plain, _("Use PLAIN"));
   evas_object_size_hint_align_set(wd->plain, -1.0, 0.0);
   elm_table_pack(tab, wd->plain, 1, 0, 1, 1);
   evas_object_show(wd->plain);
   
   /* Use SASL */
   wd->sasl = elm_check_add(box);
-  elm_check_label_set(wd->sasl, _("Use SASL"));
+  elm_object_text_set(wd->sasl, _("Use SASL"));
   evas_object_size_hint_align_set(wd->sasl, -1.0, 0.0);
   elm_table_pack(tab, wd->sasl, 0, 1, 1, 1);
   evas_object_show(wd->sasl);
   
   /* SASL Anonymous */
   wd->anon = elm_check_add(box);
-  elm_check_label_set(wd->anon, _("Anonymous"));
+  elm_object_text_set(wd->anon, _("Anonymous"));
   evas_object_size_hint_align_set(wd->anon, -1.0, 0.0);
   elm_table_pack(tab, wd->anon, 1, 1, 1, 1);
   evas_object_show(wd->anon);
@@ -285,19 +285,19 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     evas_object_show(tab);
     
     wd->hide_unaval = elm_check_add(box);
-    elm_check_label_set(wd->hide_unaval, _("Hide unavailable"));
+    elm_object_text_set(wd->hide_unaval, _("Hide unavailable"));
     evas_object_size_hint_align_set(wd->hide_unaval, -1.0, 0.0);
     elm_table_pack(tab, wd->hide_unaval, 0, 0, 1, 1);
     evas_object_show(wd->hide_unaval);
     
     wd->hide_server = elm_check_add(box);
-    elm_check_label_set(wd->hide_server, _("Hide server part"));
+    elm_object_text_set(wd->hide_server, _("Hide server part"));
     evas_object_size_hint_align_set(wd->hide_server, -1.0, 0.0);
     elm_table_pack(tab, wd->hide_server, 1, 0, 1, 1);
     evas_object_show(wd->hide_server);
     
     wd->hide_photos = elm_check_add(box);
-    elm_check_label_set(wd->hide_photos, _("Hide user's photos"));
+    elm_object_text_set(wd->hide_photos, _("Hide user's photos"));
     evas_object_size_hint_align_set(wd->hide_photos, -1.0, 0.0);
     elm_table_pack(tab, wd->hide_photos, 0, 1, 1, 1);
     evas_object_show(wd->hide_photos);
@@ -316,7 +316,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   wd->save = elm_button_add(buttons);
   evas_object_size_hint_weight_set(wd->save, 1.0, 1.0);
   evas_object_size_hint_align_set(wd->save, -1.0, 0.0);
-  elm_button_label_set(wd->save, _("Save"));
+  elm_object_text_set(wd->save, _("Save"));
   elm_box_pack_end(buttons, wd->save);
   evas_object_show(wd->save);
   evas_object_smart_callback_add(wd->save, "clicked", _save_hook, wd);
@@ -324,7 +324,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   close = elm_button_add(buttons);
   evas_object_size_hint_weight_set(close, 1.0, 1.0);
   evas_object_size_hint_align_set(close, -1.0, 0.0);
-  elm_button_label_set(close, _("Close"));
+  elm_object_text_set(close, _("Close"));
   elm_box_pack_end(buttons, close);
   evas_object_show(close);
   evas_object_smart_callback_add(close, "clicked", _close_hook, wd);

@@ -66,7 +66,7 @@ Evas_Object *elm_jabber_about_add(Evas_Object *parent){
   
   /* About Text */
   text = elm_anchorview_add(box);
-  elm_anchorview_text_set(text, ABOUT_CONTENT);
+  elm_object_text_set(text, ABOUT_CONTENT);
   evas_object_size_hint_weight_set(text, 1.0, 1.0);
   evas_object_size_hint_align_set(text, -1.0, -1.0);
   elm_box_pack_end(box, text);
@@ -74,7 +74,7 @@ Evas_Object *elm_jabber_about_add(Evas_Object *parent){
   
   /* Close Button */
   close = elm_button_add(box);
-  elm_button_label_set(close, _("Close"));
+  elm_object_text_set(close, _("Close"));
   elm_box_pack_end(box, close);
   evas_object_show(close);
   

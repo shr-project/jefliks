@@ -181,7 +181,7 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   Elm_Hoversel_Item* item=event_info;
   
-  wd->selected_status=status_by_title(elm_hoversel_item_label_get(item));
+  wd->selected_status=status_by_title(elm_object_item_text_get(item));
   
   if(wd->selected_status==JABBER_OFFLINE){
     if(jabber_state(wd->jabber)!=JABBER_DISCONNECTED){
@@ -191,7 +191,7 @@ _status_hook(void *data, Evas_Object *obj, void *event_info){
   }else{
     jabber_status_set(wd->jabber, wd->selected_status, _("I'm Jefliks! (Experimental Jabber Client for Handheld devices, based on Enlightenment) http://sourceforge.net/projects/jefliks/"));
     if(jabber_state(wd->jabber)==JABBER_CONNECTED){
-      elm_hoversel_label_set(wd->status, title_by_status(wd->selected_status));
+      elm_object_text_set(wd->status, title_by_status(wd->selected_status));
     }else{
       jabber_connect(wd->jabber);
     }
@@ -222,7 +222,7 @@ _state_change_job(void *data){
     title=title_by_status(wd->selected_status);
     break;
   }
-  elm_hoversel_label_set(wd->status, title);
+  elm_object_text_set(wd->status, title);
   
   free(as);
 }
@@ -303,12 +303,12 @@ _error_notify_job(void *data){
   evas_object_show(box);
   
   text = elm_label_add(wd->parent);
-  elm_label_label_set(text, message);
+  elm_object_text_set(text, message);
   elm_box_pack_end(box, text);
   evas_object_show(text);
   
   close = elm_button_add(wd->parent);
-  elm_button_label_set(close, _("Close"));
+  elm_object_text_set(close, _("Close"));
   evas_object_smart_callback_add(close, "clicked", _error_notify_close, notify);
   elm_box_pack_end(box, close);
   evas_object_show(close);
@@ -379,7 +379,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   /* Status */
   status = elm_hoversel_add(parent);
   wd->status=status;
-  elm_hoversel_label_set(status, _("Status"));
+  elm_object_text_set(status, _("Status"));
   elm_hoversel_hover_parent_set(status, box);
   evas_object_size_hint_weight_set(status, 1.0, 1.0);
   evas_object_size_hint_align_set(status, -1.0, 0.0);
@@ -396,7 +396,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   
   /* Talks */
   talks = elm_hoversel_add(parent);
-  elm_hoversel_label_set(talks, _("Talks"));
+  elm_object_text_set(talks, _("Talks"));
   elm_hoversel_hover_parent_set(talks, box);
   evas_object_size_hint_weight_set(talks, 1.0, 1.0);
   evas_object_size_hint_align_set(talks, -1.0, 0.0);
@@ -409,7 +409,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   
   /* Actions */
   actions = elm_hoversel_add(parent);
-  elm_hoversel_label_set(actions, _("Actions"));
+  elm_object_text_set(actions, _("Actions"));
   elm_hoversel_hover_parent_set(actions, box);
   evas_object_size_hint_weight_set(actions, 1.0, 1.0);
   evas_object_size_hint_align_set(actions, -1.0, 0.0);
