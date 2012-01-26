@@ -179,7 +179,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     Evas_Object *hbox, *label;						\
     hbox = elm_box_add(box);						\
     elm_box_horizontal_set(hbox, 1);					\
-    elm_box_homogenous_set(hbox, 1);					\
+    elm_box_homogeneous_set(hbox, 1);					\
     evas_object_size_hint_weight_set(hbox, 1.0, 0.0);			\
     evas_object_size_hint_align_set(hbox, -1.0, 0.0);			\
     elm_box_pack_end(box, hbox);					\
@@ -214,7 +214,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     Evas_Object *ibox;					\
     ibox=elm_box_add(box);				\
     elm_box_horizontal_set(ibox, 1);			\
-    /*elm_box_homogenous_set(ibox, 1);*/		\
+    /*elm_box_homogeneous_set(ibox, 1);*/		\
     evas_object_size_hint_weight_set(ibox, 1.0, 1.0);	\
     elm_box_pack_start(ibox, widget1);			\
     elm_box_pack_end(ibox, widget2);			\
@@ -239,7 +239,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   
   /* Table for Checkboxes */
   tab = elm_table_add(box);
-  elm_table_homogenous_set(tab, 1);
+  elm_table_homogeneous_set(tab, 1);
   evas_object_size_hint_weight_set(tab, 1.0, 1.0);
   evas_object_size_hint_align_set(tab, -1.0, -1.0);
   elm_box_pack_end(box, tab);
@@ -278,7 +278,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
     /* options */
     /* Table for Checkboxes */
     Evas_Object *tab = elm_table_add(box);
-    elm_table_homogenous_set(tab, 1);
+    elm_table_homogeneous_set(tab, 1);
     evas_object_size_hint_weight_set(tab, 1.0, 1.0);
     evas_object_size_hint_align_set(tab, -1.0, -1.0);
     elm_box_pack_end(box, tab);
@@ -307,7 +307,7 @@ Evas_Object *elm_jabber_config_add(Evas_Object *parent){
   /* buttons */
   buttons = elm_box_add(frame);
   elm_box_horizontal_set(buttons, 1);
-  elm_box_homogenous_set(buttons, 1);
+  elm_box_homogeneous_set(buttons, 1);
   evas_object_size_hint_weight_set(buttons, 1.0, 0.0);
   evas_object_size_hint_align_set(buttons, -1.0, 1.0);
   elm_box_pack_end(frame, buttons);
