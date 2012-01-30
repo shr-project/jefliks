@@ -125,10 +125,11 @@ struct _Roster_Item_Res{
 
 /* Class: Item_Grp {{{ */
 
-static void _item_grp_del(Roster_Item_Grp *item, Evas_Object *obj) {
+static void _item_grp_del(void *data, Evas_Object *obj) {
 }
 
-static char *_item_grp_text_get(Roster_Item_Grp *item, Evas_Object *obj, const char *part) {
+static char *_item_grp_text_get(void *data, Evas_Object *obj, const char *part) {
+  const Roster_Item_Grp *item = (Roster_Item_Grp *) data;
   char buf[256];
   
   snprintf(buf, sizeof(buf), "%s", item->grp);
@@ -136,11 +137,11 @@ static char *_item_grp_text_get(Roster_Item_Grp *item, Evas_Object *obj, const c
   return strdup(buf);
 }
 
-static Evas_Object *_item_grp_content_get(Roster_Item_Grp *item, Evas_Object *obj, const char *part) {
+static Evas_Object *_item_grp_content_get(void *data, Evas_Object *obj, const char *part) {
   return NULL;
 }
 
-static Eina_Bool _item_grp_state_get(const Roster_Item_Grp *item, Evas_Object *obj, const char *part) {
+static Eina_Bool _item_grp_state_get(void *data, Evas_Object *obj, const char *part) {
   return EINA_FALSE;
 }
 
@@ -158,10 +159,11 @@ static const Elm_Genlist_Item_Class _item_grp_class={
 
 /* Class: Item_Jid {{{ */
 
-static void _item_jid_del(Roster_Item_Jid *item, Evas_Object *obj) {
+static void _item_jid_del(void *data, Evas_Object *obj) {
 }
 
-static char *_item_jid_text_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
+static char *_item_jid_text_get(void *data, Evas_Object *obj, const char *part) {
+  const Roster_Item_Jid *item = (Roster_Item_Jid *) data;
   if(!strcmp(part, "elm.text")){
     char name[strlen(item->jid)+1];
     strcpy(name, item->jid);
@@ -197,7 +199,8 @@ Evas_Object *elm_jabber_photo_add(Evas_Object *parent, const char *jid){
   return icon;
 }
 
-static Evas_Object *_item_jid_content_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
+static Evas_Object *_item_jid_content_get(void *data, Evas_Object *obj, const char *part) {
+  const Roster_Item_Jid *item = (Roster_Item_Jid *) data;
   if(!strcmp(part, "elm.swallow.icon")){
     Jabber_Show show=JABBER_UNAVAILABLE;
     if(item->res && item->res->data){
@@ -220,7 +223,7 @@ static Evas_Object *_item_jid_content_get(const Roster_Item_Jid *item, Evas_Obje
   return NULL;
 }
 
-static Eina_Bool _item_jid_state_get(const Roster_Item_Jid *item, Evas_Object *obj, const char *part) {
+static Eina_Bool _item_jid_state_get(void *data, Evas_Object *obj, const char *part) {
   return EINA_FALSE;
 }
 
@@ -250,10 +253,11 @@ static const Elm_Genlist_Item_Class _item_jid_class={
 
 /* Class: Item_Res {{{ */
 
-static void _item_res_del(Roster_Item_Res *item, Evas_Object *obj) {
+static void _item_res_del(void *data, Evas_Object *obj) {
 }
 
-static char *_item_res_text_get(const Roster_Item_Res *item, Evas_Object *obj, const char *part) {
+static char *_item_res_text_get(void *data, Evas_Object *obj, const char *part) {
+  const Roster_Item_Res *item = (Roster_Item_Res *) data;
   char buf[256];
   
   if(!strcmp(part, "elm.text")){
@@ -266,7 +270,8 @@ static char *_item_res_text_get(const Roster_Item_Res *item, Evas_Object *obj, c
   return strdup(buf);
 }
 
-static Evas_Object *_item_res_content_get(const Roster_Item_Res *item, Evas_Object *obj, const char *part) {
+static Evas_Object *_item_res_content_get(void *data, Evas_Object *obj, const char *part) {
+  const Roster_Item_Res *item = (Roster_Item_Res *) data;
   if(!strcmp(part, "elm.swallow.icon")){
     const char *name=icon_by_show(item->show);
     if(name){
@@ -279,7 +284,7 @@ static Evas_Object *_item_res_content_get(const Roster_Item_Res *item, Evas_Obje
   return NULL;
 }
 
-static Eina_Bool _item_res_state_get(const Roster_Item_Res *item, Evas_Object *obj, const char *part) {
+static Eina_Bool _item_res_state_get(void *data, Evas_Object *obj, const char *part) {
   return EINA_FALSE;
 }
 
