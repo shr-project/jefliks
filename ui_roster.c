@@ -535,7 +535,7 @@ _del_hook(void *data, Evas *e, Evas_Object *obj, void *event_info){
 static void
 _exp_end(void *data, Evas_Object *obj, void *event_info) {
   Elm_Object_Item *it = event_info;
-  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  Roster_Item *item = (Roster_Item *)elm_object_item_data_get(it);
   switch(item->type){
   case ROSTER_ITEM_GRP: item_grp_exp((Roster_Item_Grp *)item); break;
   case ROSTER_ITEM_JID: item_jid_exp((Roster_Item_Jid *)item); break;
@@ -545,7 +545,7 @@ _exp_end(void *data, Evas_Object *obj, void *event_info) {
 static void
 _con_end(void *data, Evas_Object *obj, void *event_info) {
   Elm_Object_Item *it = event_info;
-  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  Roster_Item *item = (Roster_Item *)elm_object_item_data_get(it);
   switch(item->type){
   case ROSTER_ITEM_GRP: item_grp_con((Roster_Item_Grp *)item); break;
   case ROSTER_ITEM_JID: item_jid_con((Roster_Item_Jid *)item); break;
@@ -557,7 +557,7 @@ _con_end(void *data, Evas_Object *obj, void *event_info) {
 static void
 _exp_req(void *data, Evas_Object *obj, void *event_info) {
   Elm_Object_Item *it = event_info;
-  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  Roster_Item *item = (Roster_Item *)elm_object_item_data_get(it);
   Eina_Bool st=1;
   switch(item->type){
   case ROSTER_ITEM_GRP: st=item_grp_exp_req((Roster_Item_Grp *)item); break;
@@ -569,7 +569,7 @@ _exp_req(void *data, Evas_Object *obj, void *event_info) {
 static void
 _con_req(void *data, Evas_Object *obj, void *event_info) {
   Elm_Object_Item *it = event_info;
-  Roster_Item *item = (Roster_Item *)elm_genlist_item_data_get(it);
+  Roster_Item *item = (Roster_Item *)elm_object_item_data_get(it);
   Eina_Bool st=0;
   switch(item->type){
   case ROSTER_ITEM_GRP: st=item_grp_con_req((Roster_Item_Grp *)item); break;
