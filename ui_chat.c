@@ -271,7 +271,7 @@ static void inst_free(Chat_Inst *chat){
       inst_sel(wd, NULL);
     }
     
-    elm_hoversel_item_del(chat->itm);
+    elm_object_item_del(chat->itm);
   }
   
   free(chat->jid);
