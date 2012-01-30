@@ -372,11 +372,6 @@ static void item_res_srt(Roster_Item_Jid *jid_item){
   jid_item->res=eina_list_sort(jid_item->res, eina_list_count(jid_item->res), (Eina_Compare_Cb)item_res_cmp);
 }
 
-static void item_res_upd(Roster_Item_Res *res_item){
-  if(!res_item->it) return;
-  elm_genlist_item_update(res_item->it);
-}
-
 static void item_jid_upd(Roster_Item_Jid *jid_item){
   if(!jid_item->it) return;
   DEBUG("Updating Item_Jid: `%s'", jid_item->jid);
