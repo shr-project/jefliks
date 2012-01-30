@@ -706,7 +706,7 @@ static void update_status_photo(Widget_Data *wd, const char *from, const char *b
     return;
   }
   
-  char data[strlen(buf)];
+  unsigned char data[strlen(buf)];
   size_t len=base64_decode(buf, data, strlen(buf));
   if(write(fd, data, len)==len) DEBUG("photo: photo for %s cached!", from);
   close(fd);
