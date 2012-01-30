@@ -144,10 +144,6 @@ static Eina_Bool _item_grp_state_get(const Roster_Item_Grp *item, Evas_Object *o
   return EINA_FALSE;
 }
 
-static void _item_grp_sel(const Roster_Item_Grp *item, Evas_Object *obj, void *event_info) {
-  DEBUG("Selected Group %s", item->grp);
-}
-
 static const Elm_Genlist_Item_Class _item_grp_class={
   .item_style  = "default",
   .func = {
