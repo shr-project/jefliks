@@ -472,7 +472,7 @@ static void list_upd(Widget_Data *wd){
     }else{
       /* show jid */
       jid_item->it=elm_genlist_item_append(wd->list, &_item_jid_class, jid_item, NULL,
-					   ELM_GENLIST_ITEM_SUBITEMS,
+					   ELM_GENLIST_ITEM_TREE,
 					   (GenlistItemSelectFunc)_item_jid_sel, jid_item);
       item_jid_upd(jid_item);
     }
@@ -602,7 +602,7 @@ Evas_Object *elm_jabber_roster_add(Evas_Object *parent){
   elm_object_scale_set(list, 0.7);
   
   evas_object_event_callback_add(list, EVAS_CALLBACK_FREE, _del_hook, wd);
-  elm_genlist_compress_mode_set(list, 1);
+  elm_genlist_mode_set(list, ELM_LIST_COMPRESS);
   evas_object_data_set(list, "wd", wd);
   
   evas_object_smart_callback_add(list, "expand,request", _exp_req, NULL);

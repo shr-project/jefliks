@@ -65,7 +65,7 @@ Evas_Object *elm_jabber_about_add(Evas_Object *parent){
   evas_object_show(logo);
   
   /* About Text */
-  text = elm_anchorview_add(box);
+  text = elm_entry_add(box);
   elm_object_text_set(text, ABOUT_CONTENT);
   evas_object_size_hint_weight_set(text, 1.0, 1.0);
   evas_object_size_hint_align_set(text, -1.0, -1.0);

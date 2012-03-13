@@ -232,7 +232,7 @@ static void inst_add(Chat_Inst *chat, const char* text, char dir /* 0 - in, 1 - 
   evas_object_size_hint_weight_set(repl, EVAS_HINT_EXPAND, 0.0);
   evas_object_size_hint_align_set(repl, EVAS_HINT_FILL, EVAS_HINT_FILL);
   
-  body=elm_anchorblock_add(repl);
+  body=elm_entry_add(repl);
   elm_object_scale_set(body, 1.0);
   elm_object_text_set(body, text);
   /*elm_anchorblock_hover_style_set(body, "popout");*/
