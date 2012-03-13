@@ -62,7 +62,7 @@ static void
 _roster_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   DEBUG("Show Main Window!");
-  elm_pager_content_promote(wd->root, wd->main);
+  elm_naviframe_item_simple_promote(wd->root, wd->main);
   evas_object_hide(wd->chat);
   evas_object_show(wd->main);
 }
@@ -70,7 +70,7 @@ _roster_hook(void *data, Evas_Object *obj, void *event_info){
 static void
 _all_chats_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  elm_pager_content_promote(wd->root, wd->chat);
+  elm_naviframe_item_simple_promote(wd->root, wd->chat);
   evas_object_hide(wd->main);
   evas_object_show(wd->chat);
 }
@@ -92,7 +92,7 @@ _config_changed(void *data, Evas_Object *obj, void *event_info){
 static void
 _config_close(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
-  elm_pager_content_pop(wd->root);
+  elm_naviframe_item_pop(wd->root);
   evas_object_del(obj);
   if(wd->need_reconnect){
     elm_jabber_config_load(wd->jabber);
@@ -104,7 +104,7 @@ static void
 _config_hook(void *data, Evas_Object *obj, void *event_info){
   Widget_Data *wd=data;
   Evas_Object *config = elm_jabber_config_add(wd->parent);
-  elm_pager_content_push(wd->root, config);
+  elm_naviframe_item_simple_push(wd->root, config);
   evas_object_show(config);
   evas_object_smart_callback_add(config, "config,changed", _config_changed, wd);
   evas_object_smart_callback_add(config, "config,close", _config_close, wd);
@@ -342,7 +342,7 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   wd->parent=parent;
   
   /* Main Pager */
-  pager = elm_pager_add(parent);
+  pager = elm_naviframe_add(parent);
   wd->root=pager;
   evas_object_event_callback_add(pager, EVAS_CALLBACK_FREE, _del_hook, wd);
   evas_object_show(pager);
@@ -430,8 +430,8 @@ Evas_Object *elm_jabber_main(Evas_Object *parent){
   evas_object_show(chat);
   
   /* Show Main Box */
-  elm_pager_content_push(pager, chat);
-  elm_pager_content_push(pager, box);
+  elm_naviframe_item_simple_push(pager, chat);
+  elm_naviframe_item_simple_push(pager, box);
   
   return pager;
 }

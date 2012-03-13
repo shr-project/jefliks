@@ -85,10 +85,10 @@ static void inst_cin(Widget_Data *wd, Eina_Bool st){
 
 static void inst_sel(Widget_Data *wd, Chat_Inst *chat){
   if(chat){
-    elm_pager_content_promote(wd->pager, chat->box);
+    elm_naviframe_item_simple_promote(wd->pager, chat->box);
     elm_object_text_set(wd->chats, chat->jid);
   }else{
-    elm_pager_content_promote(wd->pager, wd->empty);
+    elm_naviframe_item_simple_promote(wd->pager, wd->empty);
     elm_object_text_set(wd->chats, _("Chats"));
   }
   if(wd->cinst!=chat) inst_cin(wd, 0); // hide input
@@ -154,7 +154,7 @@ static Chat_Inst *inst_get(Widget_Data *wd, const char *jid){
     //elm_object_scale_set(chat->box, 0.7);
     evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
     evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
-    elm_pager_content_push(wd->pager, box);
+    elm_naviframe_item_simple_push(wd->pager, box);
     evas_object_show(box);
     
     /* Messages Scroll */
@@ -255,8 +255,8 @@ static void inst_free(Chat_Inst *chat){
   wd->insts=eina_list_remove(wd->insts, chat);
   
   if(!wd->finalize){
-    elm_pager_content_promote(wd->pager, chat->box);
-    elm_pager_content_pop(wd->pager);
+    elm_naviframe_item_simple_promote(wd->pager, chat->box);
+    elm_naviframe_item_pop(wd->pager);
     evas_object_del(chat->box);
     
     if(wd->insts){
@@ -391,9 +391,9 @@ Evas_Object *elm_jabber_chat_add(Evas_Object * parent){
   evas_object_show(empty);
   
   /* Chats Pager */
-  pager = elm_pager_add(parent);
+  pager = elm_naviframe_add(parent);
   wd->pager = pager;
-  elm_pager_content_push(pager, empty);
+  elm_naviframe_item_simple_push(pager, empty);
   evas_object_size_hint_weight_set(pager, 1.0, 1.0);
   evas_object_size_hint_align_set(pager, -1.0, -1.0);
   elm_box_pack_end(box, pager);
